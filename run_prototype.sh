@@ -1,0 +1,1 @@
+streamlit run prototype.py --server.fileWatcherType none
