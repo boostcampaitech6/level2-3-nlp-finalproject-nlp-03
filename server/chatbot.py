@@ -91,7 +91,7 @@ class Chatbot:
     def get_vectorstore(self, text_chunks):
         embeddings = HuggingFaceEmbeddings(
                     model_name="jhgan/ko-sroberta-multitask",
-                    model_kwargs={'device': 'cuda'}, # streamlit에서는 gpu 없음
+                    model_kwargs={'device': 'cpu'}, # streamlit에서는 gpu 없음
                     encode_kwargs={'normalize_embeddings': True}
                 )
         db = Chroma.from_documents(text_chunks, embeddings, persist_directory="./chroma_db")
