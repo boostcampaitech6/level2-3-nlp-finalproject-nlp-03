@@ -22,8 +22,10 @@ app.add_middleware(
 @app.post("/query")
 async def read_query(request: Request):
     query = request.query
-    response, _ = chatbot.get_response(query)
-    return {"response": response}
+    response, source_document = chatbot.get_response(query)
+    return {"response": response,
+            "source_document": source_document[0].page_content, 
+            "help": source_document[0].metadata['source']}
 
 chatbot = Chatbot()
 

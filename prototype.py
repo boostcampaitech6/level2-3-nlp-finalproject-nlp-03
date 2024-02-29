@@ -28,7 +28,7 @@ from transformers import pipeline
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
-mode = "solar"
+mode = "openai"
 
 def main():
     st.set_page_config(
