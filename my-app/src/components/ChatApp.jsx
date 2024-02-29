@@ -33,9 +33,14 @@ const ChatApp = () => {
           }) // inputValue를 그대로 보냅니다.
         });
         const data = await response.json();
+        console.log(data)
 
         // 서버로부터 받은 응답을 채팅창에 추가
-        setMessages(messages => [...messages, { text: data.response, role: 'chatbot' }]);
+        setMessages(messages => [
+          ...messages, 
+          { text: data.response, role: 'chatbot' },
+          { text: data.source_document, role: 'chatbot' },
+        ]);
       } catch (error) {
         console.error('Error sending message:', error);
       }
