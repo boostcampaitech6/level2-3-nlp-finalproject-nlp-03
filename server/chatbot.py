@@ -9,6 +9,7 @@ from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders import UnstructuredPowerPointLoader
+from langchain_community.document_loaders import CSVLoader
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -62,6 +63,9 @@ class Chatbot:
             elif doc.endswith('.pptx'):
                 loader = UnstructuredPowerPointLoader(doc)
                 documents = loader.load_and_split()
+            elif doc.endswith('.csv'):
+                loader = CSVLoader(doc)
+                documents = loader.load_and_split()
             doc_list.extend(documents)
 
         return doc_list
@@ -90,7 +94,7 @@ class Chatbot:
     
     def get_vectorstore(self, text_chunks):
         embeddings = HuggingFaceEmbeddings(
-                    model_name="jhgan/ko-sroberta-multitask",
+                    model_name="intfloat/multilingual-e5-large",
                     model_kwargs={'device': 'cuda'}, # streamlit에서는 gpu 없음
                     encode_kwargs={'normalize_embeddings': True}
                 )
