@@ -13,6 +13,7 @@ server/chroma_db/*
 
 # Knowledge Source
 server/files/*
+server/backup_files/*
 
 # Distribution / packaging
 .Python
