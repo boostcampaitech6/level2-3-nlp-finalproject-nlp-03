@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Typography, TextField, Button, Grid } from '@mui/material';
 import Message from './Message';
+import SourceDocument from './SourceDocument';
 
 const ChatApp = () => {
   const [messages, setMessages] = useState([]);
@@ -33,14 +34,14 @@ const ChatApp = () => {
           }) // inputValue를 그대로 보냅니다.
         });
         const data = await response.json();
-        console.log(data)
 
         // 서버로부터 받은 응답을 채팅창에 추가
         setMessages(messages => [
           ...messages, 
           { text: data.response, role: 'chatbot' },
-          { text: data.source_document, role: 'chatbot' },
+          { text: data.source_document, role: 'source'}
         ]);
+        console.log(messages)
       } catch (error) {
         console.error('Error sending message:', error);
       }
@@ -73,8 +74,12 @@ const ChatApp = () => {
         <Grid item xs={12}>
           <div style={{ minHeight: '80vh', maxHeight: '80vh', overflowY: 'auto' }}>
             {messages.map((message, index) => (
-              <Message key={index} text={message.text} role={message.role} />
-            ))}
+                message.role === 'source' ? (
+                  <SourceDocument key={index} text={message.text} />
+                ) : (
+                  <Message key={index} text={message.text} role={message.role} />
+                )
+              ))}
             <div ref={messagesEndRef} />
           </div>
         </Grid>
