@@ -80,11 +80,12 @@ const ChatApp = () => {
                   <Message key={index} text={message.text} role={message.role} />
                 )
               ))}
+            <div style={{ float: 'right', width: '8px', height: '100%', marginRight: '-8px' }} />
             <div ref={messagesEndRef} />
           </div>
         </Grid>
         <Grid item xs={12}>
-          <Grid container spacing={2} alignItems="flex-end">
+          <Grid container spacing={2} alignItems="flex-end" justifyContent="flex-end">
             <Grid item xs={12}>
               <TextField
                 fullWidth

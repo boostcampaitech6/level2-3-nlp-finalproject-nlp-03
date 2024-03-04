@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Paper, Typography, IconButton, Button } from '@mui/material';
 import { ExpandMore, ExpandLess } from '@mui/icons-material';
+import Markdown from 'markdown-to-jsx';
 
 const SourceDocument = ({ text }) => {
   const [expanded, setExpanded] = useState(false);
@@ -18,7 +19,7 @@ const SourceDocument = ({ text }) => {
           </>
         ) : (
           <>
-            <Button>더보기</Button>
+            <Button>참고 자료 보기</Button>
           </>
         )}
       </div>
@@ -26,9 +27,8 @@ const SourceDocument = ({ text }) => {
         <>
           <Paper elevation={0} sx={{ border: 1, borderRadius: 2, borderColor: 'grey.300' }} style={{ padding: '10px', maxWidth: '100%', backgroundColor: '#FFFFFF' }}>
             <h4 style={{textAlign: 'left', margin:'20px' }}> 참고 자료 </h4>
-            <br></br>
             <Typography variant="body1" style={{ margin:'20px' ,textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expanded ? 'normal' : 'nowrap' }}>
-              {text}
+              <Markdown>{text}</Markdown>
             </Typography>
           </Paper>
         </>
