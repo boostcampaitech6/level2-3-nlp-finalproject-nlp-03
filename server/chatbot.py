@@ -29,6 +29,9 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from dotenv import load_dotenv
 from glob import glob
+from langchain.prompts import PromptTemplate
+from langchain.prompts.few_shot import FewShotPromptTemplate
+from langchain.prompts.prompt import PromptTemplate
 
 class Chatbot:
     def __init__(self):
@@ -81,8 +84,38 @@ class Chatbot:
         return llm
     
     def get_conversation_chain(self, llm, vectorstore):
+        few_shot_examples = [
+                        {
+                            "question": "Hi?",
+                            "answer": """
+                                Is this question asking about youth policy?: No.
+                                Answer: I am a chatbot designed to inform you about youth policies. I study every day to provide accurate information!
+                                """,
+                        },
+                        {
+                            "question": "I'm busy, can you apply for the policy on my behalf?",
+                            "answer": """
+                                Is this question asking about youth policy?: No.
+                                Is this question asking for direct policy application?: Yes.
+                                Is this question rude?: Yes.
+                                Answer: Sorry, but I cannot directly apply for policies. However, I can guide you through the application process in detail!
+                                """,
+                        },
+                    ]
+
+        template = PromptTemplate(input_variables=['chat_history', 'question'], template='Question: {question}\nAnswer: {answer}\nStandalone question:')
+        few_shot_prompt = FewShotPromptTemplate(
+                            examples=few_shot_examples,
+                            example_prompt=template,
+                            suffix="Given the next conversation and follow-up question, please rephrase the follow-up question as a standalone question in the original language\n\nChat_history: {chat_history}, Question: {question}",
+                            input_variables=["chat_history", "question"],
+                        )
+        
+        base_prompt_template = PromptTemplate(input_variables=['chat_history', 'question'], template='Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.\n\nChat History:\n{chat_history}\nFollow Up Input: {question}\nStandalone question:')
+
         conversation_chain = ConversationalRetrievalChain.from_llm( 
-            llm=llm, 
+            llm=llm,
+            condense_question_prompt=base_prompt_template, # few-shot을 사용하고싶으면 few_shot_prompt로 바꾸시면 됩니다. 
             chain_type="stuff", 
             retriever=vectorstore.as_retriever(search_type = 'mmr', vervose = True), 
             memory=ConversationBufferMemory(memory_key='chat_history', return_messages=True, output_key='answer'), # chat_history 키값을 가진 메모리에 저장하게 해줌, output_key에서 답변에 해당하는 것만 history에 담게 해줌
