@@ -74,7 +74,10 @@ class Chatbot:
                 loader = UnstructuredPowerPointLoader(doc)
                 documents = loader.load_and_split()
             elif doc.endswith('.csv'):
-                loader = CSVLoader(doc)
+                loader = CSVLoader(doc, csv_args={
+                        'delimiter': ',',
+                        'quotechar': '"',}
+                        )
                 documents = loader.load_and_split()
             doc_list.extend(documents)
 
@@ -111,7 +114,7 @@ Context: {context}
         few_shot_examples = [
             {
                 "question": "정책을 신청할 수 있어?",
-                "answer": "정책 신청에 필요한 연령, 주택 소유 여부, 대출 여부, 소득, 자산, 신용도에 따라 판단한 결과입니다. 결과는 다음과 같습니다."
+                "answer": "정책 신청에 필요한 연령, 주택 소유 여부, 대출 여부, 소득, 자산, 신용도에 따라 판단한 결과입니다. 결과는 다음과 같습니다 멍멍!."
             },
             {
                 "question": "국민취업지원제도 신청 절차를 알려줘",
@@ -146,6 +149,8 @@ Context: {context}
 ## 7. 사후관리
 - 미취업자: 취업지원서비스 종료일 이후 3개월 동안 구인 정보 제공 등 사후관리
 - 취업자: 장기 근속 유도를 위한 취업성공수당 지원
+
+다음과 같이 신청을 하면 됩니다. 멍멍!
 """
             },
         ]
