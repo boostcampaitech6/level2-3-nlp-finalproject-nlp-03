@@ -33,6 +33,12 @@ from langchain.prompts import PromptTemplate
 from langchain.prompts.few_shot import FewShotPromptTemplate
 from langchain.prompts.prompt import PromptTemplate
 
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
+)
+
 class Chatbot:
     def __init__(self):
         self.mode = "openai"
@@ -84,13 +90,34 @@ class Chatbot:
         return llm
     
     def get_conversation_chain(self, llm, vectorstore):
+        system_template = """Use the following pieces of context which is related to youth policies to answer the users question. 
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
+System: 이 시스템은 청소년 정책에 관한 질문에 답변을 제공합니다. 질문을 분석하여, 질문이 청소년 정책에 관한 것인지, 직접적인 정책 신청 요청인지, 또는 무례한 요청인지를 판단한 후, 아래 예시에 따라 적절한 답변을 제공해주세요. 그리고 모든 답변을 출력할 때 멍멍!이라는 소리를 붙여서 강아지처럼 말하게 답변을 제공하세요.
+
+예시:
+- 질문: "안녕?"
+  답변: "청소년 정책에 관한 질문이 아닙니다. 저는 청소년 정책에 관해 정보를 제공하는 챗봇입니다. 매일 공부하여 정확한 정보를 제공하기 위해 노력합니다 멍멍!"
+
+- 질문: "바쁜데, 대신 정책 신청해 줄 수 있어?"
+  답변: "청소년 정책에 관한 질문이 아닙니다. 직접 정책 신청을 요청하는 질문입니다. 무례한 요청입니다. 죄송하지만, 직접 정책을 신청할 수는 없습니다. 하지만, 신청 과정에 대해 자세히 안내해 드릴 수 있습니다 멍멍!"
+
+이제, 다음 질문에 대해 위 예시와 같은 형식으로 답변을 제공해주세요.
+----------------
+{context}"""
+
+        messages = [
+            SystemMessagePromptTemplate.from_template(system_template),
+            HumanMessagePromptTemplate.from_template("{question}"),
+        ]
+        CHAT_PROMPT = ChatPromptTemplate.from_messages(messages)
+        
         few_shot_examples = [
                         {
                             "question": "Hi?",
                             "answer": """
-                                Is this question asking about youth policy?: No.
-                                Answer: I am a chatbot designed to inform you about youth policies. I study every day to provide accurate information!
-                                """,
+                                    Is this question asking about youth policy?: No.
+                                    Answer: I am a chatbot designed to inform you about youth policies. I study every day to provide accurate information!
+                                    """,
                         },
                         {
                             "question": "I'm busy, can you apply for the policy on my behalf?",
@@ -115,13 +142,14 @@ class Chatbot:
 
         conversation_chain = ConversationalRetrievalChain.from_llm( 
             llm=llm,
-            condense_question_prompt=base_prompt_template, # few-shot을 사용하고싶으면 few_shot_prompt로 바꾸시면 됩니다. 
+            # condense_question_prompt=few_shot_prompt, # few-shot을 사용하고싶으면 few_shot_prompt로 바꾸시면 됩니다. base_prompt_template을 사용하면 기본 프롬프트로 사용됩니다.
             chain_type="stuff", 
             retriever=vectorstore.as_retriever(search_type = 'mmr', vervose = True), 
             memory=ConversationBufferMemory(memory_key='chat_history', return_messages=True, output_key='answer'), # chat_history 키값을 가진 메모리에 저장하게 해줌, output_key에서 답변에 해당하는 것만 history에 담게 해줌
             get_chat_history=lambda h: h,
             return_source_documents=True,
-            verbose = True
+            verbose = True,
+            combine_docs_chain_kwargs=({"prompt": CHAT_PROMPT}),
         )
         return conversation_chain
     
