@@ -37,11 +37,30 @@ class AssistantChatbot:
         self.show_json(assistant)
         return assistant.id
     
-    def set_assistant(
+    def load_assistant(
         self,
         id: str = 'asst_1BCYQqLoUFtHriaXZXvz8b4X'
     ):
         self.assistant = self.client.beta.assistants.retrieve(id)
+
+    def update_assistant(
+        self,
+        assistant_id: str = 'asst_1BCYQqLoUFtHriaXZXvz8b4X',
+        tools: list[dict] = [
+            # {"type": "code_interpreter"},
+            {"type": "retrieval"},
+            # {"type": "function", "function": lambda x: None},
+        ],
+        instructions: str = ""
+    ) -> str:
+        assistant = self.client.beta.assistants.update(
+            assistant_id,
+            tools=tools,
+            instructions=instructions,
+        )
+        self.show_json(assistant)
+        return assistant.id
+        
     
     def create_new_thread(self, id: str=None):
         # 새로운 스레드를 생성합니다.
@@ -70,9 +89,6 @@ class AssistantChatbot:
         # obj를 JSON 형태로 변환한 후 들여쓰기를 적용하여 출력합니다.
         pprint(json.loads(obj.model_dump_json()))
 
-    import time
-
-
     # 반복문에서 대기하는 함수
     def wait_on_run(self, run, thread_id):
         while run.status == "queued" or run.status == "in_progress":
@@ -83,7 +99,6 @@ class AssistantChatbot:
             )
             time.sleep(0.5)
         return run
-
 
     def submit_message(self, assistant_id, thread_id, user_message):
         # 스레드에 종속된 메시지를 '추가' 합니다.
@@ -97,16 +112,13 @@ class AssistantChatbot:
         )
         return run
 
-
     def get_answer(self, thread_id):
         # 스레드에 종속된 메시지를 '조회' 합니다.
         return self.client.beta.threads.messages.list(thread_id=thread_id, order="asc")
 
-
     def print_message(self, response):
         for res in response:
             print(f"[{res.role.upper()}]\n{res.content[0].text.value}\n")
-
 
     def ask(self, assistant_id, thread_id, user_message):
         run = self.submit_message(
@@ -130,7 +142,7 @@ class AssistantChatbot:
 
 if __name__=="__main__":
     chatbot = AssistantChatbot()
-    chatbot.set_assistant()
+    chatbot.load_assistant()
     thread_id = chatbot.create_new_thread().id
     assistant_id = chatbot.assistant.id
     chatbot.ask(assistant_id, thread_id, "만나서 반가워")
