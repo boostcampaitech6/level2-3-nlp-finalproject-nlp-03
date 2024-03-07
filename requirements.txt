@@ -16,3 +16,4 @@ transformers
 fastapi
 uvicorn
 torch==1.13
+umap-learn
