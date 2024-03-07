@@ -42,6 +42,7 @@ class AssistantChatbot:
         id: str = 'asst_1BCYQqLoUFtHriaXZXvz8b4X'
     ):
         self.assistant = self.client.beta.assistants.retrieve(id)
+        return self.assistant.id
 
     def update_assistant(
         self,
@@ -53,13 +54,13 @@ class AssistantChatbot:
         ],
         instructions: str = ""
     ) -> str:
-        assistant = self.client.beta.assistants.update(
+        self.assistant = self.client.beta.assistants.update(
             assistant_id,
             tools=tools,
             instructions=instructions,
         )
-        self.show_json(assistant)
-        return assistant.id
+        self.show_json(self.assistant)
+        return self.assistant.id
         
     
     def create_new_thread(self, id: str=None):
@@ -71,7 +72,7 @@ class AssistantChatbot:
         self.show_json(thread)
         self.thread = thread
         self.threads_dict[self.thread.id] = []
-        return thread
+        return thread.id
     
     def upload_file(self,fp_path: str):
         # TODO: add a check here for filesize limit
@@ -98,52 +99,63 @@ class AssistantChatbot:
                 run_id=run.id,
             )
             time.sleep(0.5)
+
+        if run.status == 'completed':
+            print('>>>>>>> assistant run status: ', run.status)
+        else:
+            raise "Error in assistant runnig"
         return run
 
-    def submit_message(self, assistant_id, thread_id, user_message):
-        # 스레드에 종속된 메시지를 '추가' 합니다.
-        self.client.beta.threads.messages.create(
-            thread_id=thread_id, role="user", content=user_message
-        )
+    def send_message(
+            self, 
+            assistant_id: str, 
+            thread_id: str, 
+            user_message: str,
+            file_ids: list[str] = [],
+        ):
+        if file_ids:
+            message = self.client.beta.threads.messages.create(
+                thread_id=self.thread.id,
+                role="user",
+                content=user_message,
+                file_ids=file_ids
+            )
+        else:
+            message = self.client.beta.threads.messages.create(
+                thread_id=self.thread.id,
+                role="user",
+                content=user_message
+            )
+
         # 스레드를 실행합니다.
         run = self.client.beta.threads.runs.create(
             thread_id=thread_id,
             assistant_id=assistant_id,
         )
-        return run
 
-    def get_answer(self, thread_id):
-        # 스레드에 종속된 메시지를 '조회' 합니다.
-        return self.client.beta.threads.messages.list(thread_id=thread_id, order="asc")
-
-    def print_message(self, response):
-        for res in response:
-            print(f"[{res.role.upper()}]\n{res.content[0].text.value}\n")
-
-    def ask(self, assistant_id, thread_id, user_message):
-        run = self.submit_message(
-            assistant_id,
-            thread_id,
-            user_message,
-        )
         # 실행이 완료될 때까지 대기합니다.
         run = self.wait_on_run(run, thread_id)
-        self.print_message(self.get_answer(thread_id).data[-2:])
-        return run
+        # self.show_json(run)
+
+        messages = self.client.beta.threads.messages.list(
+            thread_id=self.thread.id
+        )
+
+        msg_list = ['  \n'.join([content.text.value for content in msg.content]) for msg in messages.data]
+        self.threads_dict[self.thread.id] = msg_list
+        print(msg_list)
+
+        return msg_list
     
     def exit(self):
         for thread_id in self.threads_dict.keys():
             self.client.beta.threads.delete(thread_id)
-
-    def get_response(self, query: str):
-        response = self.conversation({"question": query})
-        return response['answer'], response['source_documents']
     
 
 if __name__=="__main__":
     chatbot = AssistantChatbot()
     chatbot.load_assistant()
-    thread_id = chatbot.create_new_thread().id
+    thread_id = chatbot.create_new_thread()
     assistant_id = chatbot.assistant.id
-    chatbot.ask(assistant_id, thread_id, "만나서 반가워")
+    chatbot.send_message(assistant_id, thread_id, "만나서 반가워")
     chatbot.exit()
