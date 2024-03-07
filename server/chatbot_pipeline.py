@@ -27,7 +27,14 @@ def query_classification(bot, query, file_id):
     query = f"""
 사용자의 질문은 다음과 같습니다 : {query}
 문서의 내용은 다음과 같습니다:  {file_id}
-당신은 사용자의 질문과 문서의 질문을 비교하여 사용자의 질문이 문서와 연관되어 청년 정책과 연관된 질문이면 True로 답변을 하고 문서와 연관되지 않고 청년 정책과 상관없는 일상 대화라면 False를 반환해주기 바랍니다. 
+당신은 사용자의 질문과 문서를 비교하여 사용자의 질문이 문서와 연관되어 청년 정책과 연관된 질문이면 True로 답변을 하고 문서와 연관되지 않고 청년 정책과 상관없는 일상 대화라면 False를 반환해주기 바랍니다. 
+일상 대화의 예시는 다음과 같습니다.
+예시:
+    - 안녕?
+    - 반가워
+    - 너는 뭘 하는 챗봇이니?
+다음과 같은 예시의 일상 대화는 False로 대답하세요.
+긴 문장으로 대답하지 말고 오로지 True 또는 False로만 대답하세요.
 """
 
     bot.send_message(
@@ -43,7 +50,7 @@ def make_answer(bot, query, file_id):
     thread_id = bot.create_new_thread()
     assistant_id = bot.assistant.id
     query = f"""
-당신은 제공된 문서 {file_id} 를 바탕으로 질문 {query} 에 대한 답을 하기 바합니다.
+제공된 문서 {file_id} 를 바탕으로 질문 {query} 에 대한 답을 하기 바랍니다.
 """
     bot.send_message(
         assistant_id=assistant_id, 
@@ -62,6 +69,7 @@ def run(query: str):
 
     donghangbot = AssistantChatbot()
     donghangbot.load_assistant(id='asst_1BCYQqLoUFtHriaXZXvz8b4X')
+    donghangbot.update_assistant(instructions=donghangbot.system_template)
 
     donghangbot.show_json(donghangbot.assistant)
 
@@ -69,7 +77,7 @@ def run(query: str):
     policy_query = query_classification(donghangbot, query, file_id)
     print(policy_query)
 
-    if policy_query:
+    if policy_query == 'True':
         donghangbot.update_assistant(
             assistant_id='asst_1BCYQqLoUFtHriaXZXvz8b4X',
             tools=[{ "type": "retrieval"}],
@@ -78,6 +86,8 @@ def run(query: str):
         donghangbot.show_json(donghangbot.assistant)
         answer = make_answer(donghangbot, query, file_id)
         print(answer)
+    else:
+        answer = None
         
     source_document = None
 
@@ -90,3 +100,4 @@ def run(query: str):
 
 if __name__=='__main__':
     run("국민취업지원제도가 뭐야?") 
+    # run("안녕?") 

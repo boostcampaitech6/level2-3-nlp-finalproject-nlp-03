@@ -59,7 +59,7 @@ class AssistantChatbot:
             tools=tools,
             instructions=instructions,
         )
-        self.show_json(self.assistant)
+        # self.show_json(self.assistant)
         return self.assistant.id
         
     
@@ -143,7 +143,7 @@ class AssistantChatbot:
 
         msg_list = ['  \n'.join([content.text.value for content in msg.content]) for msg in messages.data]
         self.threads_dict[self.thread.id] = msg_list
-        print(msg_list)
+        # print(msg_list)
 
         return msg_list
     
