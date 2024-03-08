@@ -52,9 +52,13 @@ class Chatbot:
 
     def init_chatbot(self):
         self.llm = self.create_llm_chain(self.mode)
-        self.files_text = self.get_text(self.files_path)
-        # self.text_chunks = self.get_text_chunks(self.files_text)
-        self.vectorstore = self.get_vectorstore(self.files_text)
+        if os.path.exists("./chroma_db"):  # 저장된 ChromaDB가 있을 때,
+            self.vectorstore = Chroma(
+                persist_directory="./chroma_db", embedding_function=self.embd
+            )
+        else:
+            self.files_text = self.get_text(self.files_path)
+            self.vectorstore = self.get_vectorstore(self.files_text)
         self.conversation = self.get_conversation_chain(self.llm, self.vectorstore)
 
     def get_text(self, files_path):
@@ -93,7 +97,7 @@ class Chatbot:
                 openai_api_key=openai_api_key,
                 model_name="gpt-3.5-turbo",
                 callbacks=[StreamingStdOutCallbackHandler()],
-                temperature=0,
+                temperature=0.2,
             )  # temperature로 일관성 유지, streaming 기능 (streamlit은 안됨)
         else:
             raise ValueError(f"Invalid mode: {mode}")
