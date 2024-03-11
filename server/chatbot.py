@@ -53,7 +53,7 @@ class Chatbot:
                 model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
                 encode_kwargs={"normalize_embeddings": True},
             )
-            self.vectorsore = Chroma(
+            self.vectorstore = Chroma(
                 persist_directory="./chroma_db", embedding_function=embeddings
             )
         else:
