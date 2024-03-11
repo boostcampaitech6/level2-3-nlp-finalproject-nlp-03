@@ -13,9 +13,8 @@ streamlit
 langchain_community
 langchain-openai
 bitsandbytes
-git+https://github.com/huggingface/transformers.git
-git+https://github.com/huggingface/peft.git
-git+https://github.com/huggingface/accelerate.git
 transformers
+accelerate
 fastapi
 uvicorn
+torch==1.13
