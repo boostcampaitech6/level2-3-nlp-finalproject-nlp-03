@@ -98,7 +98,7 @@ for pair in zip(question_list, answer_list, url_list):
     df1.loc[len(df1)] = list(pair)
 
 df1['정책'] = '국민취업지원제도'
-df1.to_csv(os.path.join(PATH, "kua_faq.csv"), index=True)
+df1.to_csv(os.path.join(PATH, "kua_faq.csv"), encoding="utf-8-sig", index=True)
 print('>>> 국민취업지원제도 완료')
 
 ## 2. 국민내일배움카드
@@ -159,7 +159,7 @@ for index, row in ontong_faq_q.iterrows():
     df2.loc[len(df2)] = [row['질문'], '', row['source']]
 
 df2['정책'] = '국민내일배움카드'
-df2.to_csv(os.path.join(PATH, "card_faq.csv"), index=True)
+df2.to_csv(os.path.join(PATH, "card_faq.csv"), encoding="utf-8-sig", index=True)
 
 print('>>> 국민내일배움카드 완료')
 
@@ -211,7 +211,7 @@ for index, row in ontong_faq_q.iterrows():
     df3.loc[len(df3)] = [row['질문'], '', row['source']]
 
 df3['정책'] = '청년 주택드림 청약통장'
-df3.to_csv(os.path.join(PATH, "bankbook_faq.csv"), index=True)
+df3.to_csv(os.path.join(PATH, "bankbook_faq.csv"), encoding="utf-8-sig", index=True)
 
 print('>>> 청년 주택드림 청약통장 완료')
 
@@ -263,7 +263,7 @@ for index, row in ontong_faq_q.iterrows():
     df4.loc[len(df4)] = [row['질문'], '', row['source']]
 
 df4['정책'] = '청년전용 버팀목전세자금'
-df4.to_csv("loan_faq.csv", index=True)
+df4.to_csv(os.path.join(PATH, "loan_faq.csv"), encoding="utf-8-sig", index=True)
 
 print('>>> 청년전용 버팀목전세자금 완료')
 
@@ -316,7 +316,7 @@ for index, row in ontong_faq_q.iterrows():
     df5.loc[len(df5)] = [row['질문'], '', row['source']]
 
 df5['정책'] = '청년도약계좌'
-df5.to_csv(os.path.join(PATH, "account_faq.csv"), index=True)
+df5.to_csv(os.path.join(PATH, "account_faq.csv"), encoding="utf-8-sig", index=True)
 
 print('>>> 청년도약계좌 완료')
 
@@ -378,10 +378,10 @@ for index, row in ontong_faq_q.iterrows():
     df6.loc[len(df6)] = [row['질문'], '', row['source']]
 
 df6['정책'] = '기후동행카드'
-df6.to_csv(os.path.join(PATH, "climate_card.csv"), index=True)
+df6.to_csv(os.path.join(PATH, "climate_card.csv"), encoding="utf-8-sig", index=True)
 
 print('>>> 기후동행카드 완료')
 
 # df 통합
 df_all = pd.concat([df1, df2, df3, df4, df5, df6])
-df_all.to_csv(os.path.join(PATH, "faq.csv"), index=True)
+df_all.to_csv(os.path.join(PATH, "faq.csv"), encoding="utf-8-sig", index=True)
