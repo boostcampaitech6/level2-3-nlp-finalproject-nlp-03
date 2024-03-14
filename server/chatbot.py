@@ -116,6 +116,15 @@ class Chatbot:
             separator : 
                 - page_content(chromaDB에 들어갈 내용)에 값을 넣을 때, 컬럼별 구분자
                 - ex) 'ᴥ'
+            
+            Notes:
+                위의 예시를 통합하면 모두 합쳐서 다음처럼 들어갈 거에요.
+                [Document(page_content='columnA의 index 0값ᴥcolumnB의 index 0값', 
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 0값', 
+                    'column B': 'column B index 0값', 'source': './files/terms'}),
+                Document(page_content='columnA의 index 1값ᴥcolumnB의 index 1값', 
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 1값', 
+                    'column B': 'column B index 1값', 'source': './files/terms'}), ...]
 
         Returns: 
             List
