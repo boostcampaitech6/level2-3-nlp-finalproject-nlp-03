@@ -2,6 +2,10 @@ import os
 import time
 from glob import glob
 
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
+from langchain_core.documents import Document
+import pandas as pd
+
 import tiktoken
 import torch
 from dotenv import load_dotenv
@@ -33,6 +37,10 @@ from langchain_openai import ChatOpenAI
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
 
+os.environ["LANGCHAIN_TRACING_V2"]="true"
+os.environ["LANGCHAIN_ENDPOINT"]="https://api.smith.langchain.com"
+os.environ['LANGCHAIN_API_KEY'] = 'ls__e15765918790425c8ef8ccdde35deed9'
+os.environ['LANGCHAIN_PROJECT'] = 'self-querying-chroma-test01'
 
 class Chatbot:
     def __init__(self):
@@ -57,38 +65,117 @@ class Chatbot:
                 persist_directory="./chroma_db", embedding_function=embeddings
             )
         else:
-            self.files_text = self.get_text(self.files_path)
+            # 정보제공 폴더 : ./files/whole  |  자격요건 폴더 : ./files/qualifications  | 절차문의 폴더 : ./files/procedures
+            # 통합 qna만 넣는.
+            self.files_text = self.get_text('./files/whole',
+                                            column_list = ['정책명', '답변', 'source'],
+                                            source_dict={'category': '정보제공'},
+                                            metadata_columns=['정책명'],
+                                            # separator='@',
+                                            )  
+            # 다른 의도의 데이터도 같이 삽입 시
+            # self.files_text.extend(self.get_text('./files/qualification',
+            #                                 column_list = ['정책명', '답변', 'source'],
+            #                                 source_dict={'category': '정보제공'},
+            #                                 metadata_columns=['정책명']
+            #                                 ))  
+            # 용어는 다음과 같이 넣었었습니다. -> 넣었던 파일명 : 단어 데이터 - 시트1.csv
+            # self.files_text.extend(self.get_text('./files/terms', 
+            #    column_list=['단어', '설명', '출처', '정책명'], 
+            #    source_dict={'category': '정보제공'}, 
+            #    metadata_columns=['단어', '정책명']))
             self.text_chunks = self.get_text_chunks(self.files_text)
             self.vectorstore = self.get_vectorstore(self.text_chunks)
         self.llm = self.create_llm_chain(self.mode)
         self.conversation = self.get_conversation_chain(self.llm, self.vectorstore)
 
-    def get_text(self, files_path):
-        file_list = glob(files_path + "/*")
+        
+    def get_text(self,
+        files_path : str, 
+        column_list : Sequence[str] = (), 
+        source_dict : Dict = {},
+        metadata_columns : Sequence[str] = (),
+        separator : Optional[str] = 'ᴥ',
+    ) -> List:
+        '''
+        Args:
+            files_path (str): 
+                - csv 파일이 담긴 폴더명
+                - ex) './files'
+            column_list (Optional(Sequence[str])): 
+                csv 파일 내에 있는 컬럼명 입력. DB에 담을 column들 선정
+                - ex) ['columnA', 'columnB']
+            source_dict (Dict): 
+                - csv 파일 내에는 없지만 메타데이터로 넣고 싶은 값이 있을 때. 
+                - ex) {'metadata A': 'value', 'metadata B' : 'value'} 
+                    -> (다음과 같이 들어갑니다) metadata={'metadata A': 'value', 'metadata B' : 'value'}
+            metadata_columns (Optional(Sequence[str])): 
+                - csv 파일 내에 있는 컬럼과 컬럼의 값들을 각각 메타데이터로 넣고 싶을 때.
+                - ex) ['column A', 'column B'] 
+                    -> (다음과 같이 들어갑니다) metadata={'column A': '각 row 별 column A에 대한 값', 'column B' : '이하동일'}
+            separator : 
+                - page_content(chromaDB에 들어갈 내용)에 값을 넣을 때, 컬럼별 구분자
+                - ex) 'ᴥ'
+
+        Returns: 
+            List
+
+        '''
+    # column_list가 있으면 column list 열만 page_content에 넣음. 없으면 모든 열을 page_content에 넣음.
+
+        file_list = glob(files_path + '/*')
         doc_list = []
 
-        for doc in file_list:
-            if doc.endswith(".pdf"):
-                loader = PyPDFLoader(doc)
-                documents = loader.load_and_split()
-            elif doc.endswith(".docx"):
-                loader = Docx2txtLoader(doc)
-                documents = loader.load_and_split()
-            elif doc.endswith(".pptx"):
-                loader = UnstructuredPowerPointLoader(doc)
-                documents = loader.load_and_split()
-            elif doc.endswith(".csv"):
-                loader = CSVLoader(
-                    doc,
-                    csv_args={
-                        "delimiter": ",",
-                        "quotechar": '"',
-                    },
-                )
+        for file in file_list:
+            if file.endswith('.csv'):
+                with open(file, newline='') as csvfile:
+                    df = pd.read_csv(csvfile)
+                    documents = list(self.df_to_doc(df, files_path, column_list, source_dict, metadata_columns, separator))
+            elif file.endswith('.pdf'):
+                loader = PyPDFLoader(file)
                 documents = loader.load_and_split()
             doc_list.extend(documents)
-
+            
         return doc_list
+    
+    def df_to_doc(self,
+        df : pd.DataFrame, 
+        file_path : str, 
+        column_list : Sequence[str] = (),
+        source_dict : Dict = {},
+        metadata_columns : Sequence[str] = (),
+        separator : Optional[str] = 'ᴥ',
+    ) -> Iterator[Document]:
+
+        if not column_list: 
+            column_list = df.columns.to_list()
+            print(column_list)
+
+        if True in df[column_list].isna().any().to_list():
+            raise ValueError("The Required Column has empty value. Cannot process") 
+        
+        df.fillna('', inplace=True)
+
+        # Joining the columns with a 'ᴥ'
+        
+        # column명 없이
+        df['content'] = df.apply(lambda row: f'{separator}'.join(row[column_list]), axis=1)
+        
+        # column명 넣어서
+        # df['content'] = df.apply(lambda row: f'{separator}'.join([f"{col};{val}" for col, val in row[column_list].items()]), axis=1)
+        
+        for _, data in df.iterrows():
+            metadata = dict()
+
+            for key, value in source_dict.items():
+                metadata[key] = value
+                
+            for col in metadata_columns:
+                metadata[col] = data[col]
+
+            metadata['source'] = file_path
+                
+            yield Document(page_content=data['content'], metadata=metadata)
 
     def create_llm_chain(self, mode):
         if mode == "openai":
@@ -104,7 +191,7 @@ class Chatbot:
         else:
             raise ValueError(f"Invalid mode: {mode}")
         return llm
-
+    
     def get_conversation_chain(self, llm, vectorstore):
         system_template = """
 당신은 청년 정책에 관한 질문에 답변을 제공하는 아주 유용한 챗봇입니다. 질문을 분석하여, 질문이 청년 정책에 관한 것인지, 단순한 대화인지 분류하고, 만약 질문이 청년 정책과 관련된 질문이라면 사용자의 질문에 답변하기 아래의 Context를 참고하십시오. [이 부분에는 청소년 정책에 대한 구체적인 정보나 데이터를 추가할 수 있습니다. 예를 들어, 정책의 목적, 대상, 신청 방법, 혜택 등에 대한 설명이 포함될 수 있습니다. 신청 절차를 묻는 질문에는 마크다운 문법으로 신청 절차에 관한 답변을 생성해주세요.]
@@ -213,6 +300,7 @@ Context: {context}
             encode_kwargs={"normalize_embeddings": True},
         )
         db = Chroma.from_documents(text_chunks, embeddings, persist_directory="./chroma_db")
+        # db = Chroma(text_chunks, embeddings, persist_directory="./chroma_db2")
         return db
 
     def tiktoken_len(self, text):
