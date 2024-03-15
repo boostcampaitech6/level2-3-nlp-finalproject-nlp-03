@@ -1,14 +1,16 @@
 import os
 import time
 from glob import glob
-
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
-from langchain_core.documents import Document
+import uuid
 import pandas as pd
-
 import tiktoken
 import torch
 from dotenv import load_dotenv
+from customized_chromadb import CustomizedChromaDB
+
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
+from langchain_core.documents import Document
+
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains import ConversationalRetrievalChain  # 메모리를 가지고 있는 chain 사용
 from langchain.memory import ConversationBufferMemory  # 메모리 구현
@@ -33,20 +35,22 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.llms import HuggingFacePipeline
 from langchain_community.vectorstores import FAISS  # vector store 임시 구현
 from langchain_community.vectorstores import Chroma
-import chromadb
-from chromadb.config import Settings
-from langchain_openai import ChatOpenAI
-from loguru import logger
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
-
 from langchain.chains.query_constructor.base import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
 from langchain_openai import OpenAI, ChatOpenAI
 
+import chromadb
+from chromadb.config import Settings
+
+from loguru import logger
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
+
+
 os.environ["LANGCHAIN_TRACING_V2"]="true"
 os.environ["LANGCHAIN_ENDPOINT"]="https://api.smith.langchain.com"
-os.environ['LANGCHAIN_API_KEY'] = 'ls__46bd53157c234e3588385dce9fe87aed'
-os.environ['LANGCHAIN_PROJECT'] = 'final-project'
+os.environ['LANGCHAIN_API_KEY'] = os.getenv('LANGCHAIN_API_KEY')
+os.environ['LANGCHAIN_PROJECT'] = os.getenv('LANCHAIN_PROJECT')
+ADD_DATA_TO_DB = True
 
 class Chatbot:
     def __init__(self):
@@ -59,53 +63,64 @@ class Chatbot:
         load_dotenv()
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.init_chatbot()
+        self.db_manager = None
 
     def init_chatbot(self):
-        
-        if os.path.exists("./chroma_db"):  # 기존에 저장된 ChromaDB가 있을 때,
-            embeddings = HuggingFaceEmbeddings(
+        embeddings = HuggingFaceEmbeddings(
                 model_name="intfloat/multilingual-e5-large",
                 model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
                 encode_kwargs={"normalize_embeddings": True},
             )
-            self.vectorstore = Chroma(
-                persist_directory="./chroma_db", embedding_function=embeddings
-            )
+        self.db_manager = CustomizedChromaDB(embeddings)
+        self.client = self.db_manager.get_client()
+
+        if ADD_DATA_TO_DB is False:
+            self.collection = self.db_manager.get_collection(collection_name="procedures")
+            vectorstore = self.db_manager.langchain_chroma()
         else:
-            # 정보제공 폴더 : ./files/whole  |  자격요건 폴더 : ./files/qualifications  | 절차문의 폴더 : ./files/procedures
-            # 통합 qna만 넣는.
-            self.files_text = self.get_text('./files/qualifications',
+            self.collection = self.db_manager.create_collection(collection_name="procedures")
+
+            ## 정보제공 폴더 : ./files/whole  |  자격요건 폴더 : ./files/qualifications  | 절차문의 폴더 : ./files/procedures
+            ## 절차문의
+            procedures_contents = self.get_text('./files/procedures',
+                                            column_list = ['정책명', '단계', '내용', '방법', '준비 서류', '참고 사이트'],
+                                            source_dict={'category': '신청 절차 문의'},
+                                            metadata_columns=['정책명', '단계'],
+                                            separator='\n',
+                                            ) # chromadb용 문서 생성
+            text_chunks_prod = self.get_text_chunks(procedures_contents) # chunk 쪼개기
+            self.db_manager.add_data(text_chunks_prod) # collection(db table)에 데이터 삽입
+            vectorstore = self.db_manager.langchain_chroma() # langchain용 chromadb 생성
+            
+            ## 자격요건
+            self.collection = self.db_manager.create_collection(collection_name="qualifications")
+            qualification_contents = self.get_text('./files/qualifications',
                                             column_list = ['정책명', '신청 자격', '내용', '참고 사이트'], 
                                             source_dict={'category': '신청 자격 문의'},
                                             metadata_columns=['정책명', '신청 자격'], # 나중에 필터링용으로 쓸 데이터 혹은 문서에는 넣으면 안 되는데 url처럼 활용할 만한 컬럼명
                                             separator='\n',
                                             )  
-            # 다른 의도의 데이터도 같이 삽입 시
-            self.files_text.extend(self.get_text('./files/procedures',
-                                            column_list = ['정책명', '단계', '내용', '방법', '준비 서류', '참고 사이트'],
-                                            source_dict={'category': '신청 절차 문의'},
-                                            metadata_columns=['정책명', '단계'],
-                                            separator='\n',
-                                            ))  
-            # 용어는 다음과 같이 넣었었습니다. -> 넣었던 파일명 : 단어 데이터 - 시트1.csv
-            self.files_text.extend(self.get_text('./files/whole', 
-                                            column_list=['단어', '설명', '관련정책', '출처'], 
-                                            source_dict={'category': '단순 질의'}, 
-                                            metadata_columns=['단어', '관련정책'],
-                                            separator='\n',
-               ))
-            self.text_chunks = self.get_text_chunks(self.files_text)
-            self.vectorstore = self.get_vectorstore(self.text_chunks)
-        self.llm = self.create_llm_chain(self.mode)
-        self.conversation = self.get_conversation_chain(self.llm, self.vectorstore)
+            text_chunks_qual = self.get_text_chunks(qualification_contents)
+            self.db_manager.add_data(text_chunks_qual) 
+            # vectorstore = self.db_manager.langchain_chroma() 
 
-    def connectDB(self):
-        client = chromadb.HttpClient(
-        port = "1123",
-        settings=Settings(allow_reset=True)
-        )
-        client.reset()  # resets the database
-        collection = client.create_collection("test_collection")        
+            # 통합 qna와 용어 구분해서 넣어야함. 컬럼이 달라서
+            # 용어는 다음과 같이 넣었었습니다. -> 넣었던 파일명 : 단어 데이터 - 시트1.csv
+            self.collection = self.db_manager.create_collection(collection_name="qualifications")
+            information_contents = self.get_text('./files/whole', 
+                                            column_list=['단어', '설명', '정책명', '출처'], 
+                                            source_dict={'category': '단순 질의'}, 
+                                            metadata_columns=['단어', '정책명'],
+                                            separator='\n',
+               )
+            text_chunks_info = self.get_text_chunks(information_contents)
+            self.db_manager.add_data(text_chunks_info) 
+            # vectorstore = self.db_manager.langchain_chroma() 
+                        
+        llm = self.create_llm_chain(self.mode)
+        self.conversation = self.get_conversation_chain(llm, vectorstore)
+
+
     def get_text(self,
         files_path : str, 
         column_list : Sequence[str] = (), 
@@ -308,17 +323,17 @@ Context: {context}
                 type="string",
             ),
             AttributeInfo(
-                name="관련정책",
-                description="The policy name related to passage",
+                name="단계",
+                description="The step to apply for the policy",
                 type="string",
             ),
-            AttributeInfo(
-                name="단어",
-                description="The terms explained by the passage",
-                type="string",
-            ),
+            # AttributeInfo(
+            #    name="단어",
+            #    description="The terms explained by the passage",
+            #    type="string",
+            #),
         ]
-        document_content_description = "Explanation of terms related to policy"
+        document_content_description = "Explanation of procedure related to policy"
         llm = ChatOpenAI(
                     model_name="gpt-3.5-turbo",
                     temperature=0,
@@ -344,15 +359,6 @@ Context: {context}
         )
         return conversation_chain
 
-    def get_vectorstore(self, text_chunks):
-        embeddings = HuggingFaceEmbeddings(
-            model_name="intfloat/multilingual-e5-large",
-            model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
-            encode_kwargs={"normalize_embeddings": True},
-        )
-        db = Chroma.from_documents(text_chunks, embeddings, persist_directory="./chroma_db")
-        # db = Chroma(text_chunks, embeddings, persist_directory="./chroma_db2")
-        return db
 
     def tiktoken_len(self, text):
         tokenizer = tiktoken.get_encoding("cl100k_base")
@@ -361,7 +367,7 @@ Context: {context}
 
     def get_text_chunks(self, files_text):
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=5000, chunk_overlap=500, length_function=self.tiktoken_len  # 토큰 개수 기준으로 나눔
+            chunk_size=6000, chunk_overlap=200, length_function=self.tiktoken_len  # 토큰 개수 기준으로 나눔
         )
         chunks = text_splitter.split_documents(files_text)
         return chunks
