@@ -5,10 +5,10 @@ import LoadingPage from './LoadingPage'; // LoadingPage import
 const SelectPage = () => {
     const [formData, setFormData] = useState({
         birthDate: '',
-        occupation: '',
-        preferredPolicyArea: '',
-        personalIncomeRange: '',
-        householdIncomeRange: '',
+        occupation: 'skip',
+        preferredPolicyArea: 'skip',
+        personalIncomeRange: 'skip',
+        householdIncomeRange: 'skip',
     });
     const [isLoading, setIsLoading] = useState(false); // isLoading 상태 추가
 
@@ -47,6 +47,7 @@ const SelectPage = () => {
                                     name="birthDate"
                                     value={formData.birthDate}
                                     onChange={handleChange}
+                                    defaultValue="skip"
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -57,6 +58,7 @@ const SelectPage = () => {
                                     name="occupation"
                                     value={formData.occupation}
                                     onChange={handleChange}
+                                    defaultValue="skip"
                                 >
                                     <MenuItem value="구직자">구직자</MenuItem>
                                     <MenuItem value="재직자">재직자</MenuItem>
@@ -74,6 +76,7 @@ const SelectPage = () => {
                                     name="preferredPolicyArea"
                                     value={formData.preferredPolicyArea}
                                     onChange={handleChange}
+                                    defaultValue="skip"
                                 >
                                     <MenuItem value="일자리">일자리</MenuItem>
                                     <MenuItem value="주거">주거</MenuItem>
@@ -91,6 +94,7 @@ const SelectPage = () => {
                                     name="personalIncomeRange"
                                     value={formData.personalIncomeRange}
                                     onChange={handleChange}
+                                    defaultValue="skip"
                                 >
                                     <MenuItem value="0">없음</MenuItem>
                                     <MenuItem value="3000">3000 미만</MenuItem>
@@ -109,6 +113,7 @@ const SelectPage = () => {
                                     name="householdIncomeRange"
                                     value={formData.householdIncomeRange}
                                     onChange={handleChange}
+                                    defaultValue="skip"
                                 >
                                     <MenuItem value="0">없음</MenuItem>
                                     <MenuItem value="3000">3000 미만</MenuItem>

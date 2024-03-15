@@ -7,23 +7,45 @@ import { useNavigate } from 'react-router-dom';
 const LoadingPage = ({ formData }) => {
     const [progress, setProgress] = useState(0);
     const navigate = useNavigate();
+    const policiesData = [];
 
     useEffect(() => {
-        // formData 를 담아 서버로 보내고 추천 결과를 받아오는 로직을 구현해야 합니다.
+        const fetchData = async () => {
+            try {
+                console.log(formData)
+                const response = await fetch('http://110.165.18.177:8001/filter_policy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+                console.log(data); // 받은 데이터를 확인하기 위해 콘솔에 출력
+
+                clearInterval(timer);
+                navigate('/recommendPage', { state: { policiesData: data } });
+            } catch (error) {
+                console.error('There was an error!', error);
+                clearInterval(timer);
+            }
+        };
 
         const timer = setInterval(() => {
             setProgress((prevProgress) => (prevProgress >= 100 ? 0 : prevProgress + 10));
         }, 800);
 
-        setTimeout(() => {
-            clearInterval(timer);
-            navigate('/recommendPage'); // 프로그레스 바가 한 바퀴를 돌면 /recommendPage로 이동
-        }, 8000); // 8000 밀리초 = 8초
+        fetchData();
 
         return () => {
             clearInterval(timer);
         };
-    }, [navigate]);
+    }, [formData, navigate]);
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
