@@ -33,6 +33,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.llms import HuggingFacePipeline
 from langchain_community.vectorstores import FAISS  # vector store 임시 구현
 from langchain_community.vectorstores import Chroma
+import chromadb
+from chromadb.config import Settings
 from langchain_openai import ChatOpenAI
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
@@ -55,6 +57,7 @@ class Chatbot:
         self.init_chatbot()
 
     def init_chatbot(self):
+        
         if os.path.exists("./chroma_db"):  # 기존에 저장된 ChromaDB가 있을 때,
             embeddings = HuggingFaceEmbeddings(
                 model_name="intfloat/multilingual-e5-large",
@@ -89,7 +92,13 @@ class Chatbot:
         self.llm = self.create_llm_chain(self.mode)
         self.conversation = self.get_conversation_chain(self.llm, self.vectorstore)
 
-        
+    def connectDB(self):
+        client = chromadb.HttpClient(
+        port = "1123",
+        settings=Settings(allow_reset=True)
+        )
+        client.reset()  # resets the database
+        collection = client.create_collection("test_collection")        
     def get_text(self,
         files_path : str, 
         column_list : Sequence[str] = (), 
@@ -120,11 +129,11 @@ class Chatbot:
             Notes:
                 위의 예시를 통합하면 모두 합쳐서 다음처럼 들어갈 거에요.
                 [Document(page_content='columnA의 index 0값ᴥcolumnB의 index 0값', 
-                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 0값', 
-                    'column B': 'column B index 0값', 'source': './files/terms'}),
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 
+                    'column A': 'column A index 0값', 'column B': 'column B index 0값', 'source': './files/terms'}),
                 Document(page_content='columnA의 index 1값ᴥcolumnB의 index 1값', 
-                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 1값', 
-                    'column B': 'column B index 1값', 'source': './files/terms'}), ...]
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 
+                    'column A index 1값', 'column B': 'column B index 1값', 'source': './files/terms'}), ...]
 
         Returns: 
             List
