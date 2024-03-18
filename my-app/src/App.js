@@ -13,8 +13,8 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path='/' element={<OnBoardingStartPage />} />
-        <Route path='/chat' element={<ChatApp />} />
+        <Route path='/tmp' element={<OnBoardingStartPage />} />
+        <Route path='/' element={<ChatApp />} />
         <Route path='/select' element={<SelectPage />} />
         <Route path='/loading' element={<LoadingPage />} />
         <Route path='/recommendPage' element={<RecommendPage />} />
