@@ -43,8 +43,8 @@ from langchain_openai import OpenAI, ChatOpenAI
 
 os.environ["LANGCHAIN_TRACING_V2"]="true"
 os.environ["LANGCHAIN_ENDPOINT"]="https://api.smith.langchain.com"
-os.environ['LANGCHAIN_API_KEY'] = 'ls__46bd53157c234e3588385dce9fe87aed'
-os.environ['LANGCHAIN_PROJECT'] = 'final-project'
+os.environ['LANGCHAIN_API_KEY'] = '<YOUR_LANGCHAIN_API_KEY>'
+os.environ['LANGCHAIN_PROJECT'] = '<YOUR_LANGCHAIN_PROJECT_NAME>'
 
 class Chatbot:
     def __init__(self):
@@ -75,24 +75,24 @@ class Chatbot:
                                             column_list = ['정책명', '신청 자격', '내용', '참고 사이트'], 
                                             source_dict={'category': '신청 자격 문의'},
                                             metadata_columns=['정책명', '신청 자격'], # 나중에 필터링용으로 쓸 데이터 혹은 문서에는 넣으면 안 되는데 url처럼 활용할 만한 컬럼명
-                                            separator='\n',
+                                            separator='ᴥ',
                                             )  
             # 다른 의도의 데이터도 같이 삽입 시
             self.files_text.extend(self.get_text('./files/procedures',
                                             column_list = ['정책명', '단계', '내용', '방법', '준비 서류', '참고 사이트'],
                                             source_dict={'category': '신청 절차 문의'},
                                             metadata_columns=['정책명', '단계'],
-                                            separator='\n',
+                                            separator='ᴥ',
                                             ))  
             # 용어는 다음과 같이 넣었었습니다. -> 넣었던 파일명 : 단어 데이터 - 시트1.csv
             self.files_text.extend(self.get_text('./files/whole', 
                                             column_list=['단어', '설명', '관련정책', '출처'], 
                                             source_dict={'category': '단순 질의'}, 
                                             metadata_columns=['단어', '관련정책'],
-                                            separator='\n',
+                                            separator='ᴥ',
                ))
-            self.text_chunks = self.get_text_chunks(self.files_text)
-            self.vectorstore = self.get_vectorstore(self.text_chunks)
+            self.text_chunks = self.get_text_chunks(self.files_text) # chunk_size 설정하고 싶지 않으면 이 라인 지울 것
+            self.vectorstore = self.get_vectorstore(self.text_chunks) # chunk_size 설정하고 싶지 않으면 self.text_chunks를 self.files_text로 바꿀 것
         self.llm = self.create_llm_chain(self.mode)
         self.conversation = self.get_conversation_chain(self.llm, self.vectorstore)
 
@@ -102,8 +102,7 @@ class Chatbot:
         column_list : Sequence[str] = (), 
         source_dict : Dict = {},
         metadata_columns : Sequence[str] = (),
-        #separator : Optional[str] = 'ᴥ',
-        separator : Optional[str] = '\n',
+        separator : Optional[str] = 'ᴥ',
     ) -> List:
         '''
         Args:
@@ -161,8 +160,7 @@ class Chatbot:
         column_list : Sequence[str] = (),
         source_dict : Dict = {},
         metadata_columns : Sequence[str] = (),
-        #separator : Optional[str] = 'ᴥ',
-        separator : Optional[str] = '\n',
+        separator : Optional[str] = 'ᴥ',
     ) -> Iterator[Document]:
 
         if not column_list: 
@@ -225,7 +223,7 @@ class Chatbot:
 - 청년 주택드림 청약통장(주택드림 청약통장, 주택드림 청약, 주택드림)
 - 국민내일배움카드(내일배움카드, 국비지원 국민내일배움카드)
  
-다음 (####로 구분된) Context를 기반으로 차근차근 생각해서 답변을 제공해 주세요. 이때 Context에 url이 포함된 경우 생략하지 말고 인라인 링크 형식으로 넣어주세요. 전화번호도 생략하지 마세요.
+다음 (####로 구분된) Context를 기반으로 차근차근 생각해서 마크업 형식으로 답변을 제공해 주세요. 이때 Context에 url이 포함된 경우 생략하지 말고 인라인 링크 형식으로 넣어주세요. 전화번호도 생략하지 마세요.
 
 ####
 Context: {context}
@@ -251,14 +249,50 @@ Context: {context}
 6. 서류제출 및 추가심사 진행(수탁은행)
 7. 대출승인 및 실행
 
-차례대로 안내를 도와드리길 원하시면 ‘차례대로 알려 줘’라고 말씀해 주세요.
-만약 특정 절차가 궁금하면 해당 절차에 대해 질문해 주세요. 예) ‘대출신청 방법 알려 줘’, ‘자산심사는 뭐야?’, ‘1번이 궁금해’
+만약 특정 절차가 궁금하면 해당 절차에 대해 질문해 주세요. 예) ‘대출신청 방법 알려 줘’, ‘자산심사는 뭐야?’
+"""
+            },
+            {
+                "question": "버팀목 대출신청 대상자 확인용 서류 문의",
+                "answer": """
+                청년전용 버팀목전세자금의 대출신청 대상자 확인용 서류에 대해 안내해 드릴게요.
+
+대상자확인 : [주민등록등본](https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=13100000015&HighCtgCD=A01010001&Mcode=10200)
+- 합가기간 확인 등 필요시 [주민등록초본](https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=13100000015&HighCtgCD=A01010001&Mcode=10200)
+- 단독세대주 또는 배우자 분리세대 : [가족관계증명원](https://efamily.scourt.go.kr/pt/PtFrrpApplrInfoInqW.do?menuFg=02)
+- 배우자 외국인, 재외국민 또는 외국국적동포 : 외국인등록증 또는 [국내거소신고사실증명](https://www.gov.kr/main?a=AA020InfoCappViewApp&CappBizCD=12700000091)
+- 결혼예정자 : 예식장계약서 또는 청첩장
+
+혹시 더 궁금하신 사항이 있으면 말씀해 주세요.
 """
             },
             {
                 "question": "버팀목 대출조건 확인이 뭐야?",
                 "answer": """
 대출 조건 확인은 기금포털 또는 은행상담을 통해 대출기본정보 확인하는 것입니다. 대출 가능 여부와 대출 한도 등을 입력한 정보 혹은 제출 서류를 통해 미리 판단할 수 있습니다. 이 중 은행에 방문하여 확인하는 경우를 이용자들이 편의상 가심사라고 부릅니다. 멍멍!
+"""
+            },
+            {
+                "question": "버팀목 신청 자격 문의",
+                "answer": """
+                청년전용 버팀목전세자금의 신청 자격에 대해 먼저 간단히 안내해 드릴게요. 아래의 요건을 모두 충족해야 신청이 가능해요.
+
+1. (계약) 주택임대차계약을 체결하고 임차보증금의 5% 이상을 지불한 자
+2. (세대주) 대출접수일 현재 만 19세 이상 만 34세 이하의 세대주 (예비 세대주 포함)
+※ 단, 쉐어하우스(채권양도협약기관 소유주택에 한함)에 입주하는 경우 예외적으로 세대주 요건을 만족하지 않아도 이용 가능
+3. (무주택) 세대주를 포함한 세대원 전원이 무주택인 자
+4. (중복대출 금지) 주택도시기금 대출, 은행재원 전세자금 대출  및 주택담보 대출 미이용자
+5. (소득) 대출신청인과 배우자의 합산 총소득이 5천만원 이하인 자
+※ 단, 혁신도시 이전 공공기관 종사자, 타 지역으로 이주하는 재개발 구역내 세입자, 다자녀가구, 2자녀 가구인 경우 6천만원 이하, 신혼가구인 경우는 7.5천만원 이하인 자
+6. (자산) 대출신청인 및 배우자의 합산 순자산 가액이 통계청에서 발표하는 최근년도 가계금융복지조사의 ‘소득 5분위별 자산 및 부채현황’ 중 소득 3분위 전체가구 평균값(2024년도 기준 3.45억원) 이하(십만원 단위에서 반올림)인 자
+7. (신용도) 아래 요건을 모두 충족하는 자
+신청인(연대입보한 경우 연대보증인 포함)이 한국신용정보원 “신용정보관리규약”에서 정하는 아래의 신용정보 및 해제 정보가 남아있는 경우 대출 불가능
+1) 연체, 대위변제·대지급, 부도, 관련인 정보
+2) 금융질서문란정보, 공공기록정보, 특수기록정보
+3) 신용회복지원등록정보
+그 외, 부부에 대하여 대출취급기관 내규로 대출을 제한하고 있는 경우에는 대출 불가능
+
+만약 특정 자격이 궁금하면 해당 절차에 대해 질문해 주세요. 예) ‘소득 요건 확인 방법 알려 줘’, ‘신용도 확인은 어떻게 해’
 """
             },
         ]
@@ -290,7 +324,7 @@ Context: {context}
         metadata_field_info = [ ## 필터링
             AttributeInfo(
                 name="category",
-                description="classification according to Query intent",
+                description="신청 절차 문의",
                 type="string",
             ),
             AttributeInfo(
@@ -305,9 +339,14 @@ Context: {context}
             ),
             AttributeInfo(
                 name="단어",
-                description="The terms explained by the passage",
+                description="The term explained by the passage",
                 type="string",
             ),
+            AttributeInfo(
+                name="단계",
+                description="The step to apply for the policy",
+                type="string",
+            )
         ]
         document_content_description = "Explanation of terms related to policy"
         llm = ChatOpenAI(
@@ -352,7 +391,7 @@ Context: {context}
 
     def get_text_chunks(self, files_text):
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=5000, chunk_overlap=500, length_function=self.tiktoken_len  # 토큰 개수 기준으로 나눔
+            chunk_size=4000, chunk_overlap=500, length_function=self.tiktoken_len  # 토큰 개수 기준으로 나눔
         )
         chunks = text_splitter.split_documents(files_text)
         return chunks
