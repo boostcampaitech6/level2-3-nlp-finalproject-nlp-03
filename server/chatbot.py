@@ -38,13 +38,15 @@ from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
 
 from langchain.chains.query_constructor.base import AttributeInfo
-from langchain.retrievers.self_query.base import SelfQueryRetriever
+# from langchain.retrievers.self_query.base import SelfQueryRetriever
+from reorder_SelfQueryRetrievers import ReorderSelfQueryRetriever
 from langchain_openai import OpenAI, ChatOpenAI
 
+load_dotenv('/home/secludor/level2-3-nlp-finalproject-nlp-03/.env')
 os.environ["LANGCHAIN_TRACING_V2"]="true"
 os.environ["LANGCHAIN_ENDPOINT"]="https://api.smith.langchain.com"
-os.environ['LANGCHAIN_API_KEY'] = '<YOUR_LANGCHAIN_API_KEY>'
-os.environ['LANGCHAIN_PROJECT'] = '<YOUR_LANGCHAIN_PROJECT_NAME>'
+os.environ['LANGCHAIN_API_KEY'] = os.getenv('LANGCHAIN_API_KEY')
+os.environ['LANGCHAIN_PROJECT'] = 'donghaeng-gilbert'
 
 class Chatbot:
     def __init__(self):
@@ -54,7 +56,7 @@ class Chatbot:
         self.chat_history = None
         self.processComplete = False
         self.files_path = "./files"
-        load_dotenv()
+        load_dotenv('/home/secludor/level2-3-nlp-finalproject-nlp-03/.env')
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.init_chatbot()
 
@@ -353,7 +355,7 @@ Context: {context}
                     model_name="gpt-3.5-turbo",
                     temperature=0,
                     )
-        retriever = SelfQueryRetriever.from_llm(
+        retriever = ReorderSelfQueryRetriever.from_llm(
             llm, vectorstore, document_content_description, metadata_field_info, verbose=True
             # llm, vectorstore.as_retriever(search_type='mmr', verbose=True), document_content_description, metadata_field_info, verbose=True
         )
