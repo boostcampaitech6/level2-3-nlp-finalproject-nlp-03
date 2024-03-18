@@ -17,4 +17,5 @@ transformers
 accelerate
 fastapi
 uvicorn
+openai
 torch==1.13
