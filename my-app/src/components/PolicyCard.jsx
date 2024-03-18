@@ -7,7 +7,7 @@ const PolicyCard = ({ policy }) => {
   const handleNavigateToChat = () => {
     // AI 상담 버튼을 클릭할 때 ChatAppV2로 이동합니다.
     console.log("채팅창으로 이동 : ", policy.policyID)
-    navigate('/chatv2', { state: { policyID: policy.policyID } }); 
+    navigate('/chatv2', { state: { policy: policy } }); 
   };
 
   return (
