@@ -45,8 +45,13 @@ from chromadb.config import Settings
 
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
+from langchain.retrievers import bm25
+from langchain.chains.query_constructor.base import AttributeInfo
+# from langchain.retrievers.self_query.base import SelfQueryRetriever
+from reorder_SelfQueryRetrievers import ReorderSelfQueryRetriever
+from langchain_openai import OpenAI, ChatOpenAI
 
-load_dotenv()
+load_dotenv('/home/secludor/level2-3-nlp-finalproject-nlp-03/.env')
 os.environ["LANGCHAIN_TRACING_V2"]="true"
 os.environ["LANGCHAIN_ENDPOINT"]="https://api.smith.langchain.com"
 os.environ['LANGCHAIN_API_KEY'] = os.getenv('LANGCHAIN_API_KEY')
@@ -200,8 +205,8 @@ class Chatbot:
             column_list = df.columns.to_list()
             print(column_list)
 
-        #if True in df[column_list].isna().any().to_list():
-         #   raise ValueError("The Required Column has empty value. Cannot process") 
+        # if True in df[column_list].isna().any().to_list():
+         # raise ValueError("The Required Column has empty value. Cannot process") 
         
         df.fillna('', inplace=True)
 
@@ -391,7 +396,7 @@ Context: {context}
             llm, vectorstore, document_content_description, metadata_field_info, verbose=True
             # llm, vectorstore.as_retriever(search_type='mmr', verbose=True), document_content_description, metadata_field_info, verbose=True
         )
-        ####
+        #
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             condense_question_prompt=base_prompt_template,
