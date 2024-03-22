@@ -4,8 +4,9 @@ from .database import engineconn
 from .models import Policy
 from datetime import datetime
 from sqlalchemy import case
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
 
