@@ -115,7 +115,7 @@ ${policy.PolicyName}은 전세자금이 부족한 청년들에게 청년전용 �
       setInputValue('');
       // 서버 요청 보내고 응답 받기 (시뮬레이션)
       try {
-        const response = await fetch('https://110.165.18.177:8000/query', {
+        const response = await fetch('http://110.165.18.177:8000/query', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
