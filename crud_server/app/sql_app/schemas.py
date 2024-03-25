@@ -37,6 +37,29 @@ class User(UserBase):
         orm_mode = True
 
 
+class PolicyCreate(BaseModel):
+    PolicyName: str
+    D_day: str
+    OrgName: str
+    PolicyType: str
+    Progress: str
+    MinAge: int
+    MaxAge: int
+    
+class PolicyV2Base(BaseModel):
+    PolicyName: str
+    MinAge: int
+    MaxAge: int
+    policyType: str
+    D_day: str
+    OrgName: str
+
+class PolicyV2(PolicyV2Base):
+    PolicyID: int
+
+    class Config:
+        orm_mode = True
+
 class PolicyBase(BaseModel):
     PolicyName: str
     MinAge: int
@@ -59,8 +82,17 @@ class PolicyInfoResponse(BaseModel):
     policy_type: str
     org_name: str
 
+class PolicyV2InfoResponse(BaseModel):
+    id: int
+    PolicyName: str
+    d_day: str
+    policy_type: str
+    Progress: str
+    org_name: str
+
 class CustomerInfo(BaseModel):
     birthDate: str
+    residence: str
     householdIncomeRange: str
     occupation: str
     personalIncomeRange: str

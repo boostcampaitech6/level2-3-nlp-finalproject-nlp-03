@@ -29,6 +29,19 @@ class Policy(Base):
     end_date = Column(TEXT)
     OrgName = Column(TEXT)
 
+class PolicyV2(Base):
+    __tablename__ = "policies_v2"
+
+    PolicyID = Column(Integer, primary_key=True, autoincrement=True)
+    PolicyName = Column(TEXT)
+    D_day = Column(TEXT)
+    OrgName = Column(TEXT)
+    policyType = Column(TEXT)
+    Progress = Column(TEXT)
+    MinAge = Column(Integer)
+    MaxAge = Column(Integer)
+
+
 class Item(Base):
     __tablename__ = "items"
 

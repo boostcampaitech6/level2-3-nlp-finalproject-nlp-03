@@ -64,6 +64,16 @@ def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @app.post("/filter_policy", response_model=list[schemas.PolicyInfoResponse])
 async def filter_policy(customer_info: schemas.CustomerInfo, db: Session = Depends(get_db)):
-    print("hello")
     policies = crud.get_filtered_policies(db=db, customer_info=customer_info)
     return policies
+
+
+@app.post("/filter_policy_v2", response_model=list[schemas.PolicyV2InfoResponse])
+async def filter_policy(customer_info: schemas.CustomerInfo, db: Session = Depends(get_db)):
+    policies = crud.get_filtered_policies2(db=db, customer_info=customer_info)
+    return policies
+
+
+@app.post("/update_policies")
+async def update_policies(db: Session = Depends(get_db)):
+    return crud.update_policies(db=db)
