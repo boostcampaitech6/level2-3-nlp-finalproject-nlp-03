@@ -9,7 +9,6 @@ from airflow import DAG
 from datetime import datetime, timedelta
 from airflow.operators.python import PythonOperator
 
-
 ymd = datetime.today().strftime("%y%m%d")
 OUTPUT_DIR = os.path.join(os.getcwd(), "data")
 DOC_PATH = os.path.join(OUTPUT_DIR, f"card_{ymd}.csv")
