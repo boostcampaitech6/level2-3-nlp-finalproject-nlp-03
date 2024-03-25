@@ -13,7 +13,7 @@ const LoadingPage = ({ formData }) => {
         const fetchData = async () => {
             try {
                 console.log(formData)
-                const response = await fetch('http://110.165.18.177:8001/filter_policy', {
+                const response = await fetch('http://110.165.18.177:8002/filter_policy_v2', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

@@ -19,12 +19,16 @@ const PolicyCard = ({ policy }) => {
           </Typography>
           {/* PolicyName 이외의 속성들을 해시태그로 표시 */}
           <div style={{ marginTop: '8px' }}>
-            {/* d_day를 해시태그로 표시 */}
-            <Chip label={`#D-${policy.d_day}`} variant="outlined" style={{ marginRight: '4px', marginBottom: '4px' }} />
             {/* policy_type을 해시태그로 표시 */}
             <Chip label={`#${policy.policy_type}`} variant="outlined" style={{ marginRight: '4px', marginBottom: '4px' }} />
             {/* org_name을 해시태그로 표시 */}
             <Chip label={`#${policy.org_name}`} variant="outlined" style={{ marginRight: '4px', marginBottom: '4px' }} />
+            {/* progress을 해시태그로 표시 */}
+            <Chip label={`#${policy.Progress}`} variant="outlined" style={{ marginRight: '4px', marginBottom: '4px' }} />
+            {/* d_day를 해시태그로 표시 */}
+            {policy.Progress === "진행중" && (
+              <Chip label={`#D-${policy.d_day}`} variant="outlined" style={{ marginRight: '4px', marginBottom: '4px' }} />
+            )}
           </div>
           <Button variant="contained" onClick={handleNavigateToChat}>
             AI 상담 하기
