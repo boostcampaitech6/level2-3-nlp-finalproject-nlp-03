@@ -87,7 +87,7 @@ class Chatbot:
     def set_intent(self, intent):
         self.collection_name = self.intent_dict[intent]
         
-    def init_chatbot(self, client):
+    def init_chatbot(self):
         embeddings = HuggingFaceEmbeddings(
                 model_name="intfloat/multilingual-e5-large",
                 model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
