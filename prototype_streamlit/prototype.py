@@ -27,6 +27,7 @@ from transformers import pipeline
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from dotenv import load_dotenv
 
 mode = "openai"
 
@@ -48,10 +49,10 @@ def main():
         st.session_state.processComplete = None
 
     with st.sidebar:
-        uploaded_files =  st.file_uploader("Upload your file",type=['pdf','docx'],accept_multiple_files=True)        
+        uploaded_files =  st.file_uploader("Upload your file",type=['pdf','docx'],accept_multiple_files=True)
         process = st.button("Process")
     
-    if process: # 버튼 누르면
+    if process and uploaded_files: # 버튼 누르면
         files_text = get_text(uploaded_files) # Documnet Loader 적용
         text_chunks = get_text_chunks(files_text) # Text Splitter 적용
         vetorestore = get_vectorstore(text_chunks) # Text Embedding 적용
@@ -67,13 +68,13 @@ def main():
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]): # chat message container 적용 -> 아이콘 적용
-            st.write(message["content"]) # markdown?ㄹ
+            st.write(message["content"]) # markdown?
 
     history = StreamlitChatMessageHistory(key="chat_messages")
 
     # Chat logic
     query = st.chat_input("질문을 입력해주세요.")
-    if query:
+    if query and st.session_state.conversation: # 처음 아무거나 물어보는거 방지
         start = time.time()
         st.session_state.messages.append({"role": "user", "content": query})
 
@@ -98,7 +99,9 @@ def main():
         st.session_state.messages.append({"role": "assistant", "content": response})
         end = time.time()
         print(f">>>>>>>>>>>>>> {end - start:.5f} sec")
-    
+
+    if query and not st.session_state.conversation:
+        st.session_state.messages.append({"role": "assistant", "content": '문서를 먼저 업로드 해주세요'})
 
 def create_llm_chain(mode):
     '''
@@ -106,6 +109,7 @@ def create_llm_chain(mode):
     '''
     if mode == "openai": 
         print('>>>>>>>>> openai mode')
+        load_dotenv()
         openai_api_key = os.getenv("OPENAI_API_KEY")
         print('>>>>>>>>>>>> ', openai_api_key)
         llm = ChatOpenAI(openai_api_key=openai_api_key, model_name = 'gpt-3.5-turbo', callbacks=[StreamingStdOutCallbackHandler()], temperature=0) # temperature로 일관성 유지, streaming 기능 (streamlit은 안됨)
@@ -189,7 +193,7 @@ def get_vectorstore(text_chunks):
     만들어진 chunk를 벡터화
     '''
     embeddings = HuggingFaceEmbeddings(
-                    model_name="jhgan/ko-sroberta-multitask",
+                    model_name="jhgan/ko-sroberta-multitask", # intfloat/multilingual-e5-large upskyy/kf-deberta-multitask
                     model_kwargs={'device': 'cpu'}, # streamlit에서는 gpu 없음
                     encode_kwargs={'normalize_embeddings': True}
                 )  
