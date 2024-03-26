@@ -99,11 +99,11 @@ class Chatbot:
         if ADD_DATA_TO_DB is False:
             ## TO DO
             ## 정보제공 폴더 : simple_query  |  자격요건 폴더 : qualifications  | 절차문의 폴더 : procedures
-            self.collection = self.db_manager.get_collection(collection_name="qualifications") # collection == db table name
+            self.collection = self.db_manager.get_collection(collection_name=self.collection_name) # collection == db table name
             vectorstore = self.db_manager.langchain_chroma()
         else:
             self.client.reset()
-            self.collection = self.db_manager.create_collection(collection_name="procedures")    
+            self.collection = self.db_manager.create_collection(collection_name=self.collection_name)    
             
         llm = self.create_llm_chain(self.mode)
         self.classify_intent_chain = self.get_intentcheck_chain(llm)
