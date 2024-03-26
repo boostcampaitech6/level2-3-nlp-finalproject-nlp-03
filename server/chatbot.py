@@ -63,7 +63,7 @@ ADD_DATA_TO_DB = False
 
 
 class Chatbot:
-    def __init__(self, client):
+    def __init__(self):
         # self.mode = "gemini"
         self.mode = "openai"
         self.llm = None
