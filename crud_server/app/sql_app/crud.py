@@ -31,12 +31,17 @@ def create_user(db: Session, user: schemas.UserCreate):
 
 def update_policies(db: Session):
     today_date = datetime.now().strftime('%Y%m%d')[2:]
+    today_date = '240325'
     data_path = f'./sql_app/data/card_{today_date}.csv'
     df = pd.read_csv(data_path)
 
     for i in range(len(df)):
         if not df['MaxAge'][i] < 201.0:
             df['MaxAge'][i] = 200.0
+        if len(df['OrgName'][i].split(" ")[0]) == 2:
+            df['OrgName'][i] = df['OrgName'][i].split(" ")[0]
+        else:
+            df['OrgName'][i] = "중앙부처"
 
         policy = models.PolicyV2(
             PolicyName=df['PolicyName'][i],
@@ -71,11 +76,18 @@ def get_filtered_policies3(db: Session, customer_info: schemas.CustomerInfo):
         residence = customer_info.residence
         preferred_policy_area = customer_info.preferredPolicyArea
 
-        filtered_policies = db.query(models.PolicyV2).filter(
-            ((birth_date == '') or (models.PolicyV2.MinAge <= calculate_age(birth_date) and models.PolicyV2.MaxAge >= calculate_age(birth_date))),
-            ((residence == 'skip') or (models.PolicyV2.OrgName == residence)) or (models.PolicyV2.OrgName == '중앙부처'),
-            ((preferred_policy_area == 'skip') or (models.PolicyV2.policyType == preferred_policy_area)),
-        ).all()
+        if birth_date == '':
+            filtered_policies = db.query(models.PolicyV2).filter(
+                ((residence == 'skip') or (models.PolicyV2.OrgName == residence)) or (models.PolicyV2.OrgName == '중앙부처'),
+                ((preferred_policy_area == 'skip') or (models.PolicyV2.policyType == preferred_policy_area)),
+            ).all()
+        else:
+            filtered_policies = db.query(models.PolicyV2).filter(
+                models.PolicyV2.MinAge <= calculate_age(birth_date),
+                models.PolicyV2.MaxAge >= calculate_age(birth_date),
+                ((residence == 'skip') or (models.PolicyV2.OrgName == residence)) or (models.PolicyV2.OrgName == '중앙부처'),
+                ((preferred_policy_area == 'skip') or (models.PolicyV2.policyType == preferred_policy_area)),
+            ).all()
 
         mapped_policies = [map_policyV2_to_response(policy) for policy in filtered_policies]
         return mapped_policies
