@@ -1,6 +1,7 @@
 import os, re, requests
 import pandas as pd
 import numpy as np
+import copy
 
 from bs4 import BeautifulSoup 
 from urllib.request import urlopen
@@ -11,7 +12,8 @@ from airflow.operators.python import PythonOperator
 
 ymd = datetime.today().strftime("%y%m%d")
 OUTPUT_DIR = os.path.join(os.getcwd(), "data")
-DOC_PATH = os.path.join(OUTPUT_DIR, f"card_{ymd}.csv")
+CARD_DOC_PATH = os.path.join(OUTPUT_DIR, f"card_{ymd}.csv")
+DB_DOC_PATH = os.path.join(OUTPUT_DIR, f"db_{ymd}.csv")
 
 default_args = {
     'owner': 'airflow',
@@ -109,21 +111,25 @@ def get_ontong() -> pd.DataFrame:
 
     YouthPolicyInfo = {}
     # attr 이름 모두 소문자로
-    attr_to_find_list=['polybizsjnm', 'ageinfo'] # 모두 소문자여야 함.
+    attr_to_find_list=['polybizsjnm', 'polyItcnCn', 'sporCn', 
+                    'ageInfo', 'majrRqisCn', 'prcpCn', 'aditRscn', 'prcpLmttTrgtCn',
+                    'rqutProcCn', 'pstnPaprCn', 'rqutUrla', 'rfcSiteUrla1', 'rfcSiteUrla2'] # 모두 소문자여야 함.
 
     for each_attr in attr_to_find_list:
-        finded_attr=soup.find_all(each_attr)
+        finded_attr=soup.find_all(each_attr.lower())
         YouthPolicyInfo[each_attr]=[x.text for x in finded_attr]
 
     df_ontong = pd.DataFrame(YouthPolicyInfo)
     alt_colnames = ['PolicyName', 'Age']
 
-    df_ontong.columns = alt_colnames
-
+    df_ontong.rename(columns={'polybizsjnm': '정책명', 'polyitcncn': '정책소개', 'sporcn': '지원내용', 
+                    'ageinfo': '연령정보', 'majrrqiscn': '전공요건내용', 'prcpcn': '거주지및소득조건내용', 'aditrscn': '추가단서사항내용', 'prcpLmtttrgtcn':'참여제한대상내용',
+                    'rqutproccn':'신청절차내용', 'pstnpaprcn':'제출서류내용', 'rqutUrla':'신청사이트주소', 'rfcsiteurla1':'참고사이트1', 'rfcsiteurla2':'참고사이트2'})
+        
         # 숫자를 찾아서 MinAge와 MaxAge를 할당하는 함수
     def assign_ages(row):
         # 현재 열에서 모든 숫자 찾기
-        numbers = re.findall(r'\d+', row['Age'])
+        numbers = re.findall(r'\d+', row['연령정보'])
         
         # 숫자의 개수에 따라 조건 적용
         if len(numbers) == 2:
@@ -139,13 +145,31 @@ def get_ontong() -> pd.DataFrame:
     df_ontong = df_ontong.drop_duplicates()
 
     merged_df = pd.merge(df, df_ontong, on='PolicyName', how='inner')
-    merged_df = merged_df.drop('Age', axis=1)
+    merged_df = merged_df.drop(['연령정보', '정책소개', '지원내용', '전공요건내용', '거주지및소득조건내용', '추가단서사항내용', '참여제한대상내용', 
+                                '신청절차내용', '제출서류내용', '신청사이트주소', '참고사이트1', '참고사이트2'], axis=1)
     merged_df.loc[merged_df['Progress'] == '상시', 'D-day'] = '∞'
     merged_df.loc[merged_df['Progress'] == '진행 예정', 'D-day'] = '?'
     merged_df = merged_df[merged_df['Progress'] != '신청 마감']
+    merged_df.rename(columns={'정책명':'PolicyName'})
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    merged_df.to_csv(DOC_PATH, index=False)
+    merged_df.to_csv(CARD_DOC_PATH, index=False)
+    
+    # for chroma db uploading data
+    procedure = ['정책명', '신청절차내용', '제출서류내용', '신청사이트주소', '참고사이트1', '참고사이트2']
+    qualification = ['정책명', '연령정보', '지원내용', '전공요건내용', '거주지및소득조건내용', '추가단서사항내용', '참여제한대상내용']
+    df_db = copy.deepcopy(df_ontong)
+
+    df_db['procedure'] = df[procedure].apply(lambda row : 'ᴥ'.join(row.values.astype(str)), axis=1)
+    df_db['qualification'] = df[qualification].apply(lambda row : 'ᴥ'.join(row.values.astype(str)), axis=1)
+
+    df_db.drop(['연령정보', '정책소개', '지원내용', '전공요건내용', '거주지및소득조건내용', '추가단서사항내용', '참여제한대상내용', 
+                                '신청절차내용', '제출서류내용', '신청사이트주소', '참고사이트1', '참고사이트2'], axis=1)
+    df_db.rename(columns={'정책명':'PolicyName'})
+    df.to_csv(DB_DOC_PATH, index=False)
+
+
+
 
 with DAG(
         dag_id='crawling_ontong',
