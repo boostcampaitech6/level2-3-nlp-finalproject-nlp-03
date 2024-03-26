@@ -256,7 +256,7 @@ ${policy.PolicyName}은 전세자금이 부족한 청년들에게 청년전용 �
                   }}
                   onClick={() => handleButtonClick('정보제공')}
                 >
-                  정보 제공받기
+                  기타 문의하기
                 </Button>
               </div>
             </div>
