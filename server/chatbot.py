@@ -45,6 +45,12 @@ from loguru import logger
 from reorder_SelfQueryRetrievers import ReorderSelfQueryRetriever
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai._enums import (
+    HarmBlockThreshold,
+    HarmCategory,
+)
+
 load_dotenv()
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
@@ -57,6 +63,7 @@ ADD_DATA_TO_DB = False
 
 class Chatbot:
     def __init__(self):
+        # self.mode = "gemini"
         self.mode = "openai"
         self.llm = None
         self.conversation = None
@@ -68,14 +75,15 @@ class Chatbot:
         self.files_path = "./files"
         load_dotenv()
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.google_api_key = os.getenv("GEMINI_API_KEY")
         self.init_chatbot()
 
     def init_chatbot(self):
         embeddings = HuggingFaceEmbeddings(
-            model_name="intfloat/multilingual-e5-large",
-            model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
-            encode_kwargs={"normalize_embeddings": True},
-        )
+                model_name="intfloat/multilingual-e5-large",
+                model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
+                encode_kwargs={"normalize_embeddings": True},
+            )
         self.db_manager = CustomizedChromaDB(embeddings)
         self.client = self.db_manager.get_client()
 
@@ -83,166 +91,119 @@ class Chatbot:
         if ADD_DATA_TO_DB is False:
             ## TO DO
             ## 정보제공 폴더 : simple_query  |  자격요건 폴더 : qualifications  | 절차문의 폴더 : procedures
-            self.collection = self.db_manager.get_collection(
-                collection_name=self.collection_name
-            )  # collection == db table name
+            self.collection = self.db_manager.get_collection(collection_name="qualifications") # collection == db table name
             vectorstore = self.db_manager.langchain_chroma()
         else:
             self.client.reset()
-            self.collection = self.db_manager.create_collection(collection_name=self.collection_name)
-
-            ## 정보제공 폴더 : ./files/whole  |  자격요건 폴더 : ./files/qualifications  | 절차문의 폴더 : ./files/procedures
-            ## 절차문의
-            # procedures_contents = self.get_text('./files/procedures',
-            #                                 column_list = ['정책명', '단계', '내용', '방법', '준비 서류', '참고 사이트'],
-            #                                 source_dict={'category': '신청 절차 문의'},
-            #                                 metadata_columns=['단계'],
-            #                                 separator='\n',
-            #                                 ) # chromadb용 문서 생성
-            # text_chunks_prod = self.get_text_chunks(procedures_contents) # chunk 쪼개기
-            # self.db_manager.add_data(text_chunks_prod) # collection(db table)에 데이터 삽입
-            # vectorstore = self.db_manager.langchain_chroma() # langchain용 chromadb 생성
-
-            # ## 자격요건
-            # self.collection = self.db_manager.create_collection(collection_name="qualifications")
-            # qualification_contents = self.get_text('./files/qualifications',
-            #                                 column_list = ['정책명', '신청 자격', '내용', '참고 사이트'],
-            #                                 source_dict={'category': '신청 자격 문의'},
-            #                                 metadata_columns=['신청 자격'], # 나중에 필터링용으로 쓸 데이터 혹은 문서에는 넣으면 안 되는데 url처럼 활용할 만한 컬럼명
-            #                                 separator='\n',
-            #                                 )
-            # text_chunks_qual = self.get_text_chunks(qualification_contents)
-            # self.db_manager.add_data(text_chunks_qual)
-            # # vectorstore = self.db_manager.langchain_chroma()
-
-            # # 통합 qna와 용어 구분해서 넣어야함. 컬럼이 달라서
-            # # 용어는 다음과 같이 넣었었습니다. -> 넣었던 파일명 : 단어 데이터 - 시트1.csv
-            # self.collection = self.db_manager.create_collection(collection_name="simple_query")
-            # information_contents = self.get_text('./files/simple_query',
-            #                                 column_list=[ '정책명', '질문', '답변', 'source'],
-            #                                 source_dict={'category': '단순 질의'},
-            #                                 metadata_columns=['질문'],
-            #                                 separator='\n',
-            #    )
-            # text_chunks_info = self.get_text_chunks(information_contents)
-            # self.db_manager.add_data(text_chunks_info)
-            # vectorstore = self.db_manager.langchain_chroma()
-
+            self.collection = self.db_manager.create_collection(collection_name="procedures")    
+            
         llm = self.create_llm_chain(self.mode)
         self.classify_intent_chain = self.get_intentcheck_chain(llm)
         self.intent_align = self.get_intent_align(llm)
         self.conversation = self.get_conversation_chain(llm, vectorstore)
-
-    def get_text(
-        self,
-        files_path: str,
-        column_list: Sequence[str] = (),
-        source_dict: Dict = {},
-        metadata_columns: Sequence[str] = (),
-        separator: Optional[str] = "ᴥ",
+        
+    def get_text(self,
+        files_path : str, 
+        column_list : Sequence[str] = (), 
+        source_dict : Dict = {},
+        metadata_columns : Sequence[str] = (),
+        separator : Optional[str] = 'ᴥ',
     ) -> List:
-        """
+        '''
         Args:
-            files_path (str):
+            files_path (str): 
                 - csv 파일이 담긴 폴더명
                 - ex) './files'
-            column_list (Optional(Sequence[str])):
+            column_list (Optional(Sequence[str])): 
                 csv 파일 내에 있는 컬럼명 입력. DB에 담을 column들 선정
                 - ex) ['columnA', 'columnB']
-            source_dict (Dict):
-                - csv 파일 내에는 없지만 메타데이터로 넣고 싶은 값이 있을 때.
-                - ex) {'metadata A': 'value', 'metadata B' : 'value'}
+            source_dict (Dict): 
+                - csv 파일 내에는 없지만 메타데이터로 넣고 싶은 값이 있을 때. 
+                - ex) {'metadata A': 'value', 'metadata B' : 'value'} 
                     -> (다음과 같이 들어갑니다) metadata={'metadata A': 'value', 'metadata B' : 'value'}
-            metadata_columns (Optional(Sequence[str])):
+            metadata_columns (Optional(Sequence[str])): 
                 - csv 파일 내에 있는 컬럼과 컬럼의 값들을 각각 메타데이터로 넣고 싶을 때.
-                - ex) ['column A', 'column B']
+                - ex) ['column A', 'column B'] 
                     -> (다음과 같이 들어갑니다) metadata={'column A': '각 row 별 column A에 대한 값', 'column B' : '이하동일'}
-            separator :
+            separator : 
                 - page_content(chromaDB에 들어갈 내용)에 값을 넣을 때, 컬럼별 구분자
                 - ex) 'ᴥ'
-
+            
             Notes:
                 위의 예시를 통합하면 모두 합쳐서 다음처럼 들어갈 거에요.
-                [Document(page_content='columnA의 index 0값ᴥcolumnB의 index 0값',
-                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 0값',
+                [Document(page_content='columnA의 index 0값ᴥcolumnB의 index 0값', 
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 0값', 
                     'column B': 'column B index 0값', 'source': './files/terms'}),
-                Document(page_content='columnA의 index 1값ᴥcolumnB의 index 1값',
-                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 1값',
+                Document(page_content='columnA의 index 1값ᴥcolumnB의 index 1값', 
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 1값', 
                     'column B': 'column B index 1값', 'source': './files/terms'}), ...]
 
-        Returns:
+        Returns: 
             List
 
-        """
-        # column_list가 있으면 column list 열만 page_content에 넣음. 없으면 모든 열을 page_content에 넣음.
+        '''
+    # column_list가 있으면 column list 열만 page_content에 넣음. 없으면 모든 열을 page_content에 넣음.
 
-        file_list = glob(files_path + "/*")
+        file_list = glob(files_path + '/*')
         doc_list = []
 
         for file in file_list:
-            if file.endswith(".csv"):
-                with open(file, newline="") as csvfile:
+            if file.endswith('.csv'):
+                with open(file, newline='') as csvfile:
                     df = pd.read_csv(csvfile)
-                    documents = list(
-                        self.df_to_doc(
-                            df, files_path, column_list, source_dict, metadata_columns, separator
-                        )
-                    )
-            elif file.endswith(".xlsx"):
-                with open(file, newline="") as csvfile:
+                    documents = list(self.df_to_doc(df, files_path, column_list, source_dict, metadata_columns, separator))
+            elif file.endswith('.xlsx'):
+                with open(file, newline='') as csvfile:
                     df = pd.read_excel(csvfile)
-                    documents = list(
-                        self.df_to_doc(
-                            df, files_path, column_list, source_dict, metadata_columns, separator
-                        )
-                    )
+                    documents = list(self.df_to_doc(df, files_path, column_list, source_dict, metadata_columns, separator))
 
-            elif file.endswith(".pdf"):
+            elif file.endswith('.pdf'):
                 loader = PyPDFLoader(file)
                 documents = loader.load_and_split()
             doc_list.extend(documents)
-
+            
         return doc_list
-
-    def df_to_doc(
-        self,
-        df: pd.DataFrame,
-        file_path: str,
-        column_list: Sequence[str] = (),
-        source_dict: Dict = {},
-        metadata_columns: Sequence[str] = (),
-        separator: Optional[str] = "ᴥ",
+    
+    def df_to_doc(self,
+        df : pd.DataFrame, 
+        file_path : str, 
+        column_list : Sequence[str] = (),
+        source_dict : Dict = {},
+        metadata_columns : Sequence[str] = (),
+        separator : Optional[str] = 'ᴥ',
     ) -> Iterator[Document]:
-        if not column_list:
+
+        if not column_list: 
             column_list = df.columns.to_list()
             print(column_list)
 
         # if True in df[column_list].isna().any().to_list():
-        # raise ValueError("The Required Column has empty value. Cannot process")
-
-        df.fillna("", inplace=True)
+         # raise ValueError("The Required Column has empty value. Cannot process") 
+        
+        df.fillna('', inplace=True)
 
         # Joining the columns with a 'ᴥ'
-
+        
         # column명 없이
-        df["content"] = df.apply(lambda row: f"{separator}".join(row[column_list]), axis=1)
-
+        df['content'] = df.apply(lambda row: f'{separator}'.join(row[column_list]), axis=1)
+        
         # column명 넣어서
         # df['content'] = df.apply(lambda row: f'{separator}'.join([f"{col};{val}" for col, val in row[column_list].items()]), axis=1)
-
+        
         for _, data in df.iterrows():
             metadata = dict()
 
             for key, value in source_dict.items():
                 metadata[key] = value
-
+                
             for col in metadata_columns:
                 metadata[col] = data[col]
 
-            metadata["source"] = file_path
-
-            yield Document(page_content=data["content"], metadata=metadata)
-
+            metadata['source'] = file_path
+                
+            yield Document(page_content=data['content'], metadata=metadata)
+        
+        
     def create_llm_chain(self, mode):
         if mode == "openai":
             print(">>>>>>>>> openai mode")
@@ -254,10 +215,28 @@ class Chatbot:
                 callbacks=[StreamingStdOutCallbackHandler()],
                 temperature=0,
             )  # temperature로 일관성 유지, streaming 기능 (streamlit은 안됨)
+        elif mode == "gemini":
+            print(">>>>>>>>> gemini mode")
+            google_api_key = os.getenv("GEMINI_API_KEY")
+            print(">>>>>>>>>>>> ", google_api_key)
+            llm = ChatGoogleGenerativeAI(
+                google_api_key=google_api_key,
+                model="gemini-pro",
+                callbacks=[StreamingStdOutCallbackHandler()],
+                temperature=0,
+                convert_system_message_to_human=True,
+                safety_settings={
+                # HarmCategory.HARM_CATEGORY_UNSPECIFIED: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            }
+            )  # temperature로 일관성 유지, streaming 기능 (streamlit은 안됨)
         else:
             raise ValueError(f"Invalid mode: {mode}")
         return llm
-
+    
     def get_conversation_chain(self, llm, vectorstore):
         if self.collection_name == "qualifications":
             system_template = """
@@ -623,11 +602,11 @@ class Chatbot:
         if int(intent):
             noti = ""
             if int(intent)==1 and self.collection_name!="procedures":
-                noti = "\n\n혹시 신청 절차에 대해 질문하셨다면 뒤로 가셔서 신청 절차를 공부한 길벗에게 문의해주세요!"
+                noti = "\n\n(혹시 신청 절차에 대해 질문하셨다면 뒤로 가셔서 신청 절차를 공부한 길벗에게 문의해주세요!)"
             elif int(intent)==2 and self.collection_name!="qualifications":
-                noti = "\n\n혹시 신청 자격에 대해 질문하셨다면 뒤로 가셔서 신청 자격을 공부한 길벗에게 문의해주세요!"
+                noti = "\n\n(혹시 신청 자격에 대해 질문하셨다면 뒤로 가셔서 신청 자격을 공부한 길벗에게 문의해주세요!)"
             elif int(intent)==3 and self.collection_name!="simple_query":
-                noti = "\n\n혹시 정책 정보에 대해 질문하셨다면 뒤로 가셔서 정책 정보를 공부한 길벗에게 문의해주세요!"
+                noti = "\n\n(혹시 정책 정보에 대해 질문하셨다면 뒤로 가셔서 정책 정보를 공부한 길벗에게 문의해주세요!)"
             response = self.conversation({"question": query})
             return response["answer"]+noti, response["source_documents"]
         else:
