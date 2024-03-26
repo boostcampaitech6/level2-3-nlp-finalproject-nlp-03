@@ -5,6 +5,8 @@ import uvicorn
 import time
 from chatbot import Chatbot
 
+from customized_chromadb import CustomizedChromaDB
+
 app = FastAPI()
 
 class Request(BaseModel):

@@ -50,26 +50,27 @@ from langchain_google_genai._enums import (
     HarmBlockThreshold,
     HarmCategory,
 )
+import metadata_field_info
 
 load_dotenv()
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
-os.environ["LANGCHAIN_PROJECT"] = "donghaeng-gilbert"
+os.environ["LANGCHAIN_PROJECT"] = os.getenv('LANGCHAIN_PROJECT')
 
 
 ADD_DATA_TO_DB = False
 
 
 class Chatbot:
-    def __init__(self):
+    def __init__(self, client):
         # self.mode = "gemini"
         self.mode = "openai"
         self.llm = None
         self.conversation = None
         self.chat_history = None
         self.processComplete = False
-        self.collection_name = "qualifications"
+        self.collection_name = None
         # self.intent_model = None  # 의도 분석 모델
         # self.intent_tokenizer = None  # 의도 분석 모델을 위한 토크나이저
         self.files_path = "./files"
@@ -85,8 +86,8 @@ class Chatbot:
 
     def set_intent(self, intent):
         self.collection_name = self.intent_dict[intent]
-
-    def init_chatbot(self):
+        
+    def init_chatbot(self, client):
         embeddings = HuggingFaceEmbeddings(
                 model_name="intfloat/multilingual-e5-large",
                 model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
@@ -95,22 +96,17 @@ class Chatbot:
         self.db_manager = CustomizedChromaDB(embeddings)
         self.client = self.db_manager.get_client()
 
-
-        if ADD_DATA_TO_DB is False:
-            ## TO DO
-            ## 정보제공 폴더 : simple_query  |  자격요건 폴더 : qualifications  | 절차문의 폴더 : procedures
-            self.collection = self.db_manager.get_collection(collection_name=self.collection_name) # collection == db table name
-            vectorstore = self.db_manager.langchain_chroma()
-        else:
-            self.client.reset()
-            self.collection = self.db_manager.create_collection(collection_name=self.collection_name)    
-            
         llm = self.create_llm_chain(self.mode)
         self.classify_intent_chain = self.get_intentcheck_chain(llm)
         self.intent_align = self.get_intent_align(llm)
-        self.conversation_qualification = self.get_conversation_chain(llm, vectorstore, "qualifications")
-        self.conversation_procedure = self.get_conversation_chain(llm, vectorstore, "procedures")
-        self.conversation_others = self.get_conversation_chain(llm, vectorstore, "others")
+        # self.conversation_qualification = self.get_conversation_chain(llm, vectorstore, "qualifications")
+        # self.conversation_procedure = self.get_conversation_chain(llm, vectorstore, "procedures")
+        # self.conversation_others = self.get_conversation_chain(llm, vectorstore, "others")
+
+        ## 정보제공 폴더 : simple_query  |  자격요건 폴더 : qualifications  | 절차문의 폴더 : procedures
+        self.conversation_qualification = self.get_conversation_chain(llm, "qualifications")
+        self.conversation_procedure = self.get_conversation_chain(llm, "procedures")
+        self.conversation_others = self.get_conversation_chain(llm, "others")
         
     def get_text(self,
         files_path : str, 
@@ -247,7 +243,7 @@ class Chatbot:
             raise ValueError(f"Invalid mode: {mode}")
         return llm
     
-    def get_conversation_chain(self, llm, vectorstore, intent):
+    def get_conversation_chain(self, llm, intent):
         if intent == "qualifications":
             print(">>>>>>>>> qualifications")
             system_template = """
@@ -545,44 +541,28 @@ class Chatbot:
         )
         ## TO DO
         ##### 수정
-        metadata_field_info = [  ## 필터링
-            AttributeInfo(
-                name="category",
-                description="신청 절차 문의",
-                type="string",
-            ),
-            AttributeInfo(
-                name="정책명",
-                description="The policy name related to passage",
-                type="string",
-            ),
-            AttributeInfo(
-                name="관련정책",
-                description="The policy name related to passage",
-                type="string",
-            ),
-            AttributeInfo(
-                name="단어",
-                description="The term explained by the passage",
-                type="string",
-            ),
-            AttributeInfo(
-                name="단계",
-                description="The step to apply for the policy",
-                type="string",
-            ),
-        ]
-        document_content_description = "Explanation of terms related to policy"
-        llm = ChatOpenAI(
-            model_name="gpt-3.5-turbo",
-            temperature=0,
-        )
-        # retriever = SelfQueryRetriever.from_llm(
+
+        document_content_description = None
+        if intent == 'procedures':
+            metadata_field = metadata_field_info.procedures
+            document_content_description = 'Detailed explanation of how to apply for the policy'
+            self.collection = self.db_manager.get_collection(collection_name='procedures') # collection == db table name
+        elif intent == 'qualifications':
+            metadata_field = metadata_field_info.qualifications
+            document_content_description = 'Detailed description of policy eligibility methods'
+            self.collection = self.db_manager.get_collection(collection_name='qualifications') # collection == db table name
+        else:
+            metadata_field = metadata_field_info.simple_query
+            document_content_description = 'Other inquiries about all policies'
+            self.collection = self.db_manager.get_collection(collection_name='simple_query') # collection == db table name
+
+        vectorstore = self.db_manager.langchain_chroma()
+
         retriever = ReorderSelfQueryRetriever.from_llm(
             llm,
             vectorstore,
             document_content_description,
-            metadata_field_info,
+            metadata_field,
             verbose=True
             # llm, vectorstore.as_retriever(search_type='mmr', verbose=True), document_content_description, metadata_field_info, verbose=True
         )
