@@ -645,7 +645,7 @@ class Chatbot:
                 return response["answer"]+noti, docs
             
             response = self.conversation({"question": query})
-            return response["answer"]+noti, response["source_documents"]
+            return response["answer"], response["source_documents"]
         else:
             result = self.response(question=query)
             return result, docs
