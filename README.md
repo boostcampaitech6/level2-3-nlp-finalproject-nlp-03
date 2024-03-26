@@ -42,6 +42,11 @@
 - **개인 정보에 따른 정책 필터링**  
   <i>관심 분야, 나이, 소득에 따라 신청가능한 정책을 필터링</i>
 
+## Service Architecture
+<p align="center">
+    <img src = "static/architecture.png">
+</p>
+
 ## Tech Stack
 
 **RAG:** LangChain, OpenAI API  
