@@ -77,6 +77,14 @@ class Chatbot:
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.google_api_key = os.getenv("GEMINI_API_KEY")
         self.init_chatbot()
+        self.intent_dict = {
+            "신청자격": "qualifications",
+            "신청절차": "procedures",
+            "정보제공": "simple_query"
+        }
+
+    def set_intent(self, intent):
+        self.collection_name = self.intent_dict[intent]
 
     def init_chatbot(self):
         embeddings = HuggingFaceEmbeddings(
