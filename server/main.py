@@ -9,6 +9,7 @@ app = FastAPI()
 
 class Request(BaseModel):
     query: str
+    intent: str
 
 # CORS 미들웨어를 추가하여 모든 도메인에서의 요청을 허용합니다.
 app.add_middleware(
