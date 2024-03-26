@@ -26,42 +26,6 @@ def get_db():
         db.close()
 
 
-@app.post("/users/", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
-
-
-@app.get("/users/", response_model=list[schemas.User])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    users = crud.get_users(db, skip=skip, limit=limit)
-    return users
-
-
-@app.get("/users/{user_id}", response_model=schemas.User)
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-
-@app.post("/users/{user_id}/items/", response_model=schemas.Item)
-def create_item_for_user(
-    user_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db)
-):
-    return crud.create_user_item(db=db, item=item, user_id=user_id)
-
-
-@app.get("/items/", response_model=list[schemas.Item])
-def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    items = crud.get_items(db, skip=skip, limit=limit)
-    return items
-
-
-
 @app.post("/filter_policy", response_model=list[schemas.PolicyInfoResponse])
 async def filter_policy(customer_info: schemas.CustomerInfo, db: Session = Depends(get_db)):
     policies = crud.get_filtered_policies(db=db, customer_info=customer_info)
@@ -71,6 +35,12 @@ async def filter_policy(customer_info: schemas.CustomerInfo, db: Session = Depen
 @app.post("/filter_policy_v2", response_model=list[schemas.PolicyV2InfoResponse])
 async def filter_policy(customer_info: schemas.CustomerInfo, db: Session = Depends(get_db)):
     policies = crud.get_filtered_policies2(db=db, customer_info=customer_info)
+    return policies
+
+
+@app.post("/filter_policy_v3", response_model=list[schemas.PolicyV2InfoResponse])
+async def filter_policy(customer_info: schemas.CustomerInfo, db: Session = Depends(get_db)):
+    policies = crud.get_filtered_policies3(db=db, customer_info=customer_info)
     return policies
 
 

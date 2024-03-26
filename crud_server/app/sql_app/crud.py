@@ -64,10 +64,34 @@ def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
     return db_item
 
 
+def get_filtered_policies3(db: Session, customer_info: schemas.CustomerInfo):
+    try:
+        print(customer_info)
+        birth_date = customer_info.birthDate
+        residence = customer_info.residence
+        preferred_policy_area = customer_info.preferredPolicyArea
+
+        filtered_policies = db.query(models.PolicyV2).filter(
+            ((birth_date == '') or (models.PolicyV2.MinAge <= calculate_age(birth_date) and models.PolicyV2.MaxAge >= calculate_age(birth_date))),
+            ((residence == 'skip') or (models.PolicyV2.OrgName == residence)) or (models.PolicyV2.OrgName == '중앙부처'),
+            ((preferred_policy_area == 'skip') or (models.PolicyV2.policyType == preferred_policy_area)),
+        ).all()
+
+        mapped_policies = [map_policyV2_to_response(policy) for policy in filtered_policies]
+        return mapped_policies
+    except SQLAlchemyError as e:
+        db.rollback()  # 트랜잭션 롤백
+        return {"error": "Database Error", "details": str(e)}
+    except Exception as e:
+        db.rollback()  # 트랜잭션 롤백
+        return {"error": "Internal Server Error", "details": str(e)}
+
+
 def get_filtered_policies2(db: Session, customer_info: schemas.CustomerInfo):
     try:
         print(customer_info)
         birth_date = customer_info.birthDate
+        residence = customer_info.residence
         occupation = customer_info.occupation
         today_date = datetime.now()
         preferred_policy_area = customer_info.preferredPolicyArea
