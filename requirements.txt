@@ -13,7 +13,8 @@ langchain_community
 langchain-openai
 bitsandbytes
 transformers
+accelerate
 fastapi
 uvicorn
+openai
 torch==1.13
-umap-learn

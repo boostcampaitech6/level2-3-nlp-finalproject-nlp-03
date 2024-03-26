@@ -1,1 +1,1 @@
-npm start dev
+npm start
