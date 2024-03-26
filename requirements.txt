@@ -3,7 +3,6 @@ langchain
 chromadb
 unstructured
 sentence-transformers
-faiss-cpu
 tiktoken
 openai
 pypdf

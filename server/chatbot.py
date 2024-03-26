@@ -15,7 +15,10 @@ from langchain.prompts.chat import (
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
+<<<<<<< HEAD
+=======
 from langchain.prompts.few_shot import FewShotPromptTemplate
+>>>>>>> feat/prototype
 from langchain.prompts.prompt import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.callbacks import get_openai_callback  # 메모리 구현을 위한 추가 라이브러리
@@ -31,7 +34,11 @@ from langchain_community.vectorstores import FAISS  # vector store 임시 구현
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI
 from loguru import logger
+<<<<<<< HEAD
+from raptor import Raptor
+=======
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
+>>>>>>> feat/prototype
 
 
 class Chatbot:
@@ -44,9 +51,16 @@ class Chatbot:
         self.files_path = "./files"
         load_dotenv()
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.embd = HuggingFaceEmbeddings(
+            model_name="intfloat/multilingual-e5-large",
+            model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
+            encode_kwargs={"normalize_embeddings": True},
+        )
         self.init_chatbot()
 
     def init_chatbot(self):
+<<<<<<< HEAD
+=======
         if os.path.exists("./chroma_db"):  # 기존에 저장된 ChromaDB가 있을 때,
             embeddings = HuggingFaceEmbeddings(
                 model_name="intfloat/multilingual-e5-large",
@@ -60,7 +74,15 @@ class Chatbot:
             self.files_text = self.get_text(self.files_path)
             self.text_chunks = self.get_text_chunks(self.files_text)
             self.vectorstore = self.get_vectorstore(self.text_chunks)
+>>>>>>> feat/prototype
         self.llm = self.create_llm_chain(self.mode)
+        if os.path.exists("./chroma_db"):  # 저장된 ChromaDB가 있을 때,
+            self.vectorstore = Chroma(
+                persist_directory="./chroma_db", embedding_function=self.embd
+            )
+        else:
+            self.files_text = self.get_text(self.files_path)
+            self.vectorstore = self.get_vectorstore(self.files_text)
         self.conversation = self.get_conversation_chain(self.llm, self.vectorstore)
 
     def get_text(self, files_path):
@@ -99,7 +121,11 @@ class Chatbot:
                 openai_api_key=openai_api_key,
                 model_name="gpt-3.5-turbo",
                 callbacks=[StreamingStdOutCallbackHandler()],
+<<<<<<< HEAD
+                temperature=0.2,
+=======
                 temperature=0,
+>>>>>>> feat/prototype
             )  # temperature로 일관성 유지, streaming 기능 (streamlit은 안됨)
         else:
             raise ValueError(f"Invalid mode: {mode}")
@@ -206,6 +232,22 @@ Context: {context}
         )
         return conversation_chain
 
+<<<<<<< HEAD
+    def get_vectorstore(self, docs):
+        raptor = Raptor(embd=self.embd, llm=self.llm)
+        leaf_texts = [doc.page_content for doc in docs]
+        results = raptor.recursive_embed_cluster_summarize(leaf_texts, level=1, n_levels=3)
+        all_texts = leaf_texts.copy()
+        for level in sorted(results.keys()):
+            # Extract summaries from the current level's DataFrame
+            summaries = results[level][1]["summaries"].tolist()
+            # Extend all_texts with the summaries from the current level
+            all_texts.extend(summaries)
+
+        db = Chroma.from_texts(
+            texts=all_texts, embedding=self.embd, persist_directory="./chroma_db"
+        )
+=======
     def get_vectorstore(self, text_chunks):
         embeddings = HuggingFaceEmbeddings(
             model_name="intfloat/multilingual-e5-large",
@@ -213,6 +255,7 @@ Context: {context}
             encode_kwargs={"normalize_embeddings": True},
         )
         db = Chroma.from_documents(text_chunks, embeddings, persist_directory="./chroma_db")
+>>>>>>> feat/prototype
         return db
 
     def tiktoken_len(self, text):
