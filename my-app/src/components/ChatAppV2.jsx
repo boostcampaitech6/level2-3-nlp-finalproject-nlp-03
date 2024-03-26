@@ -121,7 +121,8 @@ ${policy.PolicyName}은 전세자금이 부족한 청년들에게 청년전용 �
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            "query": inputValue // inputValue를 그대로 보냅니다.
+            "query": inputValue, // inputValue를 그대로 보냅니다.
+            "intent": chatbotType
           }) // inputValue를 그대로 보냅니다.
         });
         const data = await response.json();
