@@ -104,7 +104,7 @@ class CustomizedChromaDB:
 
     # collection.modify(name) : collection의 이름 변경
     
-
+    
     ## collection 내 데이터 관리
 
     # collection.get() : collection 내의 모든 레코드 return
@@ -114,4 +114,7 @@ class CustomizedChromaDB:
     # collection.update(ids:list, documents=list, metadatas:list)
     # collection.upsert(ids:list, documents=list, metadatas:list) : 있는 값이면 update, 없는 값이면 add하는 기능
     # collection.delete(ids:list)
-        
+    
+
+    # https://docs.trychroma.com/api-reference#methods-on-collection-1
+    # https://docs.trychroma.com/reference/Client
