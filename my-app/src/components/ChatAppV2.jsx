@@ -115,13 +115,14 @@ ${policy.PolicyName}은 전세자금이 부족한 청년들에게 청년전용 �
       setInputValue('');
       // 서버 요청 보내고 응답 받기 (시뮬레이션)
       try {
-        const response = await fetch('http://localhost:8000/query', {
+        const response = await fetch('http://110.165.18.177:8000/query', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            "query": inputValue // inputValue를 그대로 보냅니다.
+            "query": inputValue, // inputValue를 그대로 보냅니다.
+            "intent": chatbotType
           }) // inputValue를 그대로 보냅니다.
         });
         const data = await response.json();
@@ -256,7 +257,7 @@ ${policy.PolicyName}은 전세자금이 부족한 청년들에게 청년전용 �
                   }}
                   onClick={() => handleButtonClick('정보제공')}
                 >
-                  정보 제공받기
+                  기타 문의하기
                 </Button>
               </div>
             </div>

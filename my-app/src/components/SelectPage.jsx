@@ -5,6 +5,7 @@ import LoadingPage from './LoadingPage'; // LoadingPage import
 const SelectPage = () => {
     const [formData, setFormData] = useState({
         birthDate: '',
+        residence: 'skip',
         occupation: 'skip',
         preferredPolicyArea: 'skip',
         personalIncomeRange: 'skip',
@@ -49,6 +50,36 @@ const SelectPage = () => {
                                     onChange={handleChange}
                                     defaultValue="skip"
                                 />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    select
+                                    label="거주지"
+                                    name="residence"
+                                    value={formData.residence}
+                                    onChange={handleChange}
+                                    defaultValue="skip"
+                                >
+                                    <MenuItem value="서울">서울</MenuItem>
+                                    <MenuItem value="부산">부산</MenuItem>
+                                    <MenuItem value="대구">대구</MenuItem>
+                                    <MenuItem value="인천">인천</MenuItem>
+                                    <MenuItem value="광주">광주</MenuItem>
+                                    <MenuItem value="대전">대전</MenuItem>
+                                    <MenuItem value="울산">울산</MenuItem>
+                                    <MenuItem value="경기">경기</MenuItem>
+                                    <MenuItem value="강원">강원</MenuItem>
+                                    <MenuItem value="충북">충북</MenuItem>
+                                    <MenuItem value="충남">충남</MenuItem>
+                                    <MenuItem value="전북">전북</MenuItem>
+                                    <MenuItem value="전남">전남</MenuItem>
+                                    <MenuItem value="경북">경북</MenuItem>
+                                    <MenuItem value="경남">경남</MenuItem>
+                                    <MenuItem value="제주">제주</MenuItem>
+                                    <MenuItem value="세종">세종</MenuItem>
+                                    <MenuItem value="skip">건너뛰기</MenuItem>
+                                </TextField>
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField
