@@ -27,7 +27,10 @@ from langchain.prompts.chat import (
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
+<<<<<<< HEAD
+=======
 from langchain.prompts.few_shot import FewShotPromptTemplate
+>>>>>>> feat/prototype
 from langchain.prompts.prompt import PromptTemplate
 from langchain.retrievers import bm25
 from langchain.text_splitter import RecursiveCharacterTextSplitter
