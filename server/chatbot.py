@@ -11,6 +11,11 @@ import torch
 from chromadb.config import Settings
 from customized_chromadb import CustomizedChromaDB
 from dotenv import load_dotenv
+from customized_chromadb import CustomizedChromaDB
+
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
+from langchain_core.documents import Document
+
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains import ConversationalRetrievalChain, LLMChain  # 메모리를 가지고 있는 chain 사용
 from langchain.chains.query_constructor.base import AttributeInfo
@@ -89,6 +94,7 @@ class Chatbot:
         
     def init_chatbot(self):
         embeddings = HuggingFaceEmbeddings(
+        embeddings = HuggingFaceEmbeddings(
                 model_name="intfloat/multilingual-e5-large",
                 model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
                 encode_kwargs={"normalize_embeddings": True},
@@ -138,11 +144,11 @@ class Chatbot:
             Notes:
                 위의 예시를 통합하면 모두 합쳐서 다음처럼 들어갈 거에요.
                 [Document(page_content='columnA의 index 0값ᴥcolumnB의 index 0값', 
-                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 0값', 
-                    'column B': 'column B index 0값', 'source': './files/terms'}),
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 
+                    'column A': 'column A index 0값', 'column B': 'column B index 0값', 'source': './files/terms'}),
                 Document(page_content='columnA의 index 1값ᴥcolumnB의 index 1값', 
-                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 'column A index 1값', 
-                    'column B': 'column B index 1값', 'source': './files/terms'}), ...]
+                    metadata={'metadata A': 'value', 'metadata B': 'value', 'column A': 
+                    'column A index 1값', 'column B': 'column B index 1값', 'source': './files/terms'}), ...]
 
         Returns: 
             List
