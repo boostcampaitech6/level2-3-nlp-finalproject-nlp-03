@@ -8,8 +8,13 @@ from langchain_core.documents import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
-HOST = '175.45.203.113'
-PORT = '1123'
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+HOST = os.getenv('HOST')
+PORT = os.getenv('PORT')
 
 class CustomizedChromaDB:
 

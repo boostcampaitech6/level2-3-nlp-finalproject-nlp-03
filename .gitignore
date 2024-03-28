@@ -6,8 +6,6 @@ __pycache__/
 # C extensions
 *.so
 
-Miniforge3-Linux-x86_64.sh
-
 # Chroma_DB
 chroma_db/*
 server/chroma_db/*
