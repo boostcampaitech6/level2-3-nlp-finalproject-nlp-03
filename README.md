@@ -57,9 +57,7 @@
 
 * Dependencies 
 ```bash
-# conda 사용
-conda env create -f environment.yaml
-conda activate gilbert
+pip install -r requirements.txt
 ```
 
 * nvm & npm 
