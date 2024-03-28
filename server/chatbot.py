@@ -94,7 +94,6 @@ class Chatbot:
         
     def init_chatbot(self):
         embeddings = HuggingFaceEmbeddings(
-        embeddings = HuggingFaceEmbeddings(
                 model_name="intfloat/multilingual-e5-large",
                 model_kwargs={"device": "cuda"},  # streamlit에서는 gpu 없음
                 encode_kwargs={"normalize_embeddings": True},
