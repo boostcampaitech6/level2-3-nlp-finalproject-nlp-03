@@ -1,0 +1,6 @@
+SQLAlchemy
+sqlalchemy-utils
+uvicorn
+fastapi
+python-dotenv
+pymysql
